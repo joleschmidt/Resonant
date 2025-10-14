@@ -53,14 +53,17 @@ export function ProfileCard({ profile, showStats = true }: ProfileCardProps) {
                 <span>Dabei seit {memberSince}</span>
               </div>
             </div>
+            {profile.bio && (
+              <div className="mt-4">
+                <p className="text-sm leading-relaxed ">
+                  {profile.bio}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {profile.bio && (
-          <div className="mt-4">
-            <p className="text-sm">{profile.bio}</p>
-          </div>
-        )}
+
       </CardHeader>
 
       {showStats && (

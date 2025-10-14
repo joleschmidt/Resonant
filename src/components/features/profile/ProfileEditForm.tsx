@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AvatarEditSection } from './AvatarEditSection';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import type { Profile } from '@/types';
 
 type Props = {
@@ -97,7 +98,13 @@ export function ProfileEditForm({ profile }: Props) {
                     />
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/profile">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Zurück
+                        </Link>
+                    </Button>
                     <Button type="submit" disabled={isPending}>
                         {isPending ? (
                             <>
@@ -113,8 +120,8 @@ export function ProfileEditForm({ profile }: Props) {
 
             {message && (
                 <div className={`flex items-center gap-2 p-3 rounded-md ${message.type === 'success'
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                     {message.type === 'success' ? (
                         <CheckCircle2 className="h-4 w-4" />

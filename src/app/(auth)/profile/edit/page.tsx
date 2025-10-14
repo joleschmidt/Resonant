@@ -34,7 +34,9 @@ export default async function ProfileEditPage() {
     return (
         <div className="container py-12">
             <div className="mx-auto max-w-2xl">
-                <h1 className="mb-6 text-3xl font-bold">Profil bearbeiten</h1>
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold">Profil bearbeiten</h1>
+                </div>
                 <ProfileEditForm profile={profile} />
             </div>
         </div>
