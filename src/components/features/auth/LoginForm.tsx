@@ -9,7 +9,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
-import { signIn } from '@/app/actions/auth';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -30,6 +31,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -43,14 +45,27 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
     try {
       setIsLoading(true);
       setError(null);
+      const supabase = createClient();
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-      const result = await signIn(data);
-
-      if (result?.error) {
-        setError(result.error);
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('email not confirmed')) {
+          setError('Bitte bestätige zuerst deine E-Mail-Adresse. Überprüfe dein Postfach.');
+          return;
+        }
+        if (msg.includes('invalid login credentials')) {
+          setError('E-Mail oder Passwort ist falsch');
+          return;
+        }
+        setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
         return;
       }
 
+      // Success: navigate immediately without reload
       onSuccess?.();
     } catch (err) {
       setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');

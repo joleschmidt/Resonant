@@ -20,7 +20,13 @@ export default async function ProfilePage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-        return null;
+        // SSR guard: redirect to home if unauthenticated
+        // We avoid next/navigation redirect in server component here to keep it simple.
+        return (
+            <div className="container py-12">
+                <a href="/" className="underline">Zur Startseite</a>
+            </div>
+        );
     }
 
     const { data: profile } = await supabase

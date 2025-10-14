@@ -4,7 +4,6 @@
  */
 
 import Link from 'next/link';
-import { Music } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,7 +14,6 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Music className="h-5 w-5" />
               <span className="font-bold">RESONANT</span>
             </div>
             <p className="text-sm text-muted-foreground">

@@ -8,15 +8,20 @@
 import Link from 'next/link';
 import { AuthButton } from '@/components/features/auth/AuthButton';
 import { Button } from '@/components/ui/button';
-import { Music } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { UserMenu } from '@/components/features/auth/UserMenu';
 
 export function Header() {
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  console.log('🟢 Header - user:', user?.id ? `LOGGED IN (${user.email})` : 'NOT LOGGED IN', 'loading:', isLoading);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <Music className="h-6 w-6" />
             <span className="text-xl font-bold">RESONANT</span>
           </Link>
 
@@ -35,7 +40,18 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <AuthButton />
+          {user ? (
+            <>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm">
+                  Profil
+                </Button>
+              </Link>
+              <UserMenu />
+            </>
+          ) : (
+            <AuthButton />
+          )}
         </div>
       </div>
     </header>

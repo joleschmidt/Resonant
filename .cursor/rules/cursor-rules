@@ -254,6 +254,9 @@ api_design:
 
 ## Performance Requirements
 
+### Debugging 
+- always use the chrome-devtools mcp-servers for debugging
+
 ### Core Web Vitals Targets
 ```yaml
 performance_targets:

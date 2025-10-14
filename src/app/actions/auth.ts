@@ -61,27 +61,23 @@ export async function signIn(data: LoginFormData) {
     password: data.password,
   });
 
+  // Treat as success if a session exists regardless of error shape
+  if (signInData?.session) {
+    redirect('/profile');
+  }
+
   if (error) {
-    // Check if it's an email not confirmed error
-    if (error.message.includes('Email not confirmed')) {
-      return {
-        error: 'Bitte bestätige zuerst deine E-Mail-Adresse. Überprüfe dein Postfach.',
-      };
+    const message = (error.message || '').toLowerCase();
+    if (message.includes('email not confirmed')) {
+      return { error: 'Bitte bestätige zuerst deine E-Mail-Adresse. Überprüfe dein Postfach.' };
     }
-    
-    return {
-      error: 'E-Mail oder Passwort ist falsch',
-    };
+    if (message.includes('invalid login credentials')) {
+      return { error: 'E-Mail oder Passwort ist falsch' };
+    }
+    return { error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' };
   }
 
-  // Additional check for email confirmation
-  if (signInData.user && !signInData.user.email_confirmed_at) {
-    return {
-      error: 'Bitte bestätige zuerst deine E-Mail-Adresse. Überprüfe dein Postfach.',
-    };
-  }
-
-  redirect('/profile');
+  return { error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' };
 }
 
 export async function signOut() {

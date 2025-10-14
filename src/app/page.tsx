@@ -1,19 +1,20 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Music, Shield, Users, Search, Package } from 'lucide-react';
+import { Shield, Users, Search, Package } from 'lucide-react';
 import Link from 'next/link';
-import { useUser } from '@/hooks/auth/useUser';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function Home() {
-    const { isAuthenticated, isLoading } = useUser();
+    const user = useAuthStore((state) => state.user);
+    const isLoading = useAuthStore((state) => state.isLoading);
+    const isAuthenticated = !!user;
 
     return (
         <div className="flex flex-col">
             {/* Hero Section */}
             <section className="container flex flex-col items-center justify-center gap-6 py-24 md:py-32">
                 <div className="flex max-w-[64rem] flex-col items-center gap-4 text-center">
-                    <Music className="h-16 w-16" />
                     <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                         Willkommen bei <span className="text-primary">RESONANT</span>
                     </h1>
@@ -50,8 +51,7 @@ export default function Home() {
 
                     <div className="flex flex-col items-center space-y-4 text-center">
                         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                            <Music className="h-8 w-8 text-primary" />
-                        </div>
+                            #                        </div>
                         <h3 className="text-xl font-bold">Guitar-Spezifisch</h3>
                         <p className="text-sm text-muted-foreground">
                             Erweiterte Suchfilter, detaillierte Specs und eine Community die sich auskennt.

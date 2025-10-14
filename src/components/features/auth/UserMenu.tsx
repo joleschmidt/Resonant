@@ -6,8 +6,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@/hooks/auth/useUser';
-import { signOut } from '@/app/actions/auth';
+import { useAuthStore } from '@/stores/authStore';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,18 +22,23 @@ import {
 import { User, Settings, LogOut, Heart, Package } from 'lucide-react';
 
 export function UserMenu() {
-  const { profile } = useUser();
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const reset = useAuthStore((s) => s.reset);
+  const router = useRouter();
 
-  if (!profile) return null;
-
-  const initials = profile.username?.substring(0, 2).toUpperCase() || 'U';
+  // Fallbacks wenn Profil (noch) nicht geladen ist
+  const displayName = profile?.username || user?.email?.split('@')[0] || 'User';
+  const displayEmail = profile?.email || user?.email || '';
+  const avatarUrl = profile?.avatar_url || undefined;
+  const initials = (profile?.username || user?.email || 'U').substring(0, 2).toUpperCase();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={profile.avatar_url || undefined} alt={profile.username} />
+            <AvatarImage src={avatarUrl} alt={displayName} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -41,8 +47,8 @@ export function UserMenu() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{profile.username}</p>
-            <p className="text-xs leading-none text-muted-foreground">{profile.email}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
+            <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
           </div>
         </DropdownMenuLabel>
 
@@ -81,7 +87,15 @@ export function UserMenu() {
         <DropdownMenuItem
           className="cursor-pointer text-destructive"
           onClick={async () => {
-            await signOut();
+            // optimistic UI update
+            reset();
+            // client signout to trigger listeners
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            // clear server cookies
+            fetch('/api/auth/signout', { method: 'POST' }).catch(() => { });
+            // navigate
+            router.replace('/');
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />

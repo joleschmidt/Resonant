@@ -37,6 +37,8 @@ export function useAuth() {
           data: { session },
         } = await supabase.auth.getSession();
 
+        console.log('useAuth init - session:', session?.user?.id ? 'FOUND' : 'NONE');
+
         if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);
