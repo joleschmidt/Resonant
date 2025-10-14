@@ -1,0 +1,85 @@
+/**
+ * Profile Page
+ * User's own profile view
+ */
+
+import { createClient } from '@/lib/supabase/server';
+import { ProfileCard } from '@/components/features/profile/ProfileCard';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Edit } from 'lucide-react';
+import type { Profile } from '@/types';
+
+export const dynamic = 'force-dynamic';
+
+export default async function ProfilePage() {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return null;
+    }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single<Profile>();
+
+    if (!profile) {
+        return (
+            <div className="container py-12">
+                <p>Profil nicht gefunden</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="container py-12">
+            <div className="mx-auto max-w-4xl space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-bold">Mein Profil</h1>
+                    <Button asChild>
+                        <Link href="/profile/edit">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Bearbeiten
+                        </Link>
+                    </Button>
+                </div>
+
+                <ProfileCard profile={profile} showStats />
+
+                <div className="grid gap-6 md:grid-cols-2">
+                    <div className="rounded-lg border p-6">
+                        <h2 className="mb-4 text-lg font-semibold">Account-Typ</h2>
+                        <p className="text-2xl font-bold capitalize">{profile.account_type}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            {profile.account_type === 'basic' && 'Upgrade für mehr Funktionen'}
+                            {profile.account_type === 'verified' && 'Bis zu 5 aktive Anzeigen'}
+                            {profile.account_type === 'premium' && 'Bis zu 20 aktive Anzeigen + Analytics'}
+                            {profile.account_type === 'store' && 'Bis zu 100 Anzeigen + Custom Branding'}
+                        </p>
+                    </div>
+
+                    <div className="rounded-lg border p-6">
+                        <h2 className="mb-4 text-lg font-semibold">Verifizierung</h2>
+                        <p className="text-sm text-muted-foreground">
+                            {profile.verification_status === 'unverified' &&
+                                'Verifiziere deine E-Mail, um alle Funktionen freizuschalten.'}
+                            {profile.verification_status === 'email_verified' &&
+                                'E-Mail verifiziert. Verifiziere deine Telefonnummer für mehr Vertrauen.'}
+                            {profile.verification_status === 'phone_verified' &&
+                                'E-Mail und Telefon verifiziert.'}
+                            {profile.verification_status === 'fully_verified' &&
+                                'Vollständig verifiziert! Du genießt maximales Vertrauen.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
