@@ -4,16 +4,20 @@ import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageIcon, Loader2 } from 'lucide-react';
+import { AvatarCropper } from './AvatarCropper';
 
 type Props = {
     currentUrl?: string | null;
+    onUploadSuccess?: () => void;
 };
 
-export function AvatarUploader({ currentUrl }: Props) {
+export function AvatarUploader({ currentUrl, onUploadSuccess }: Props) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const handleFiles = useCallback(async (file?: File) => {
@@ -22,7 +26,7 @@ export function AvatarUploader({ currentUrl }: Props) {
         setError(null);
         setSuccess(null);
 
-        // Pre-validate before upload
+        // Pre-validate before showing cropper
         if (file.size > 5 * 1024 * 1024) {
             setError('Datei zu groß (max. 5MB)');
             return;
@@ -32,11 +36,24 @@ export function AvatarUploader({ currentUrl }: Props) {
             return;
         }
 
+        // Show cropper with selected image
+        const imageUrl = URL.createObjectURL(file);
+        setSelectedImage(imageUrl);
+        setCropperOpen(true);
+    }, []);
+
+    const handleCroppedImage = useCallback(async (croppedBlob: Blob) => {
         setUploading(true);
+        setCropperOpen(false);
 
         try {
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', croppedBlob, 'avatar.jpg');
+
+            // Include previous avatar URL for cleanup
+            if (preview) {
+                formData.append('previousUrl', preview);
+            }
 
             // Upload with 30s timeout
             const controller = new AbortController();
@@ -59,6 +76,7 @@ export function AvatarUploader({ currentUrl }: Props) {
 
             setPreview(data.url);
             setSuccess('Avatar gespeichert');
+            onUploadSuccess?.();
         } catch (e: any) {
             if (e.name === 'AbortError') {
                 setError('Upload Timeout (30s)');
@@ -68,7 +86,7 @@ export function AvatarUploader({ currentUrl }: Props) {
         } finally {
             setUploading(false);
         }
-    }, []);
+    }, [preview, onUploadSuccess]);
 
     const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -134,6 +152,13 @@ export function AvatarUploader({ currentUrl }: Props) {
                 {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
                 {success && <p className="mt-2 text-sm text-green-600">{success}</p>}
             </div>
+
+            <AvatarCropper
+                open={cropperOpen}
+                onOpenChange={setCropperOpen}
+                imageSrc={selectedImage || ''}
+                onCrop={handleCroppedImage}
+            />
         </div>
     );
 }

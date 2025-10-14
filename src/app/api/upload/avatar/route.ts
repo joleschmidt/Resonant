@@ -20,6 +20,7 @@ export async function POST(req: Request) {
         // Parse form data
         const formData = await req.formData();
         const file = formData.get('file') as File | null;
+        const previousUrl = formData.get('previousUrl') as string | null;
 
         if (!file) {
             return NextResponse.json({ error: 'Keine Datei hochgeladen' }, { status: 400 });
@@ -91,6 +92,36 @@ export async function POST(req: Request) {
                 { error: `Profil-Update fehlgeschlagen: ${updateError.message}` },
                 { status: 500 }
             );
+        }
+
+        // Clean up all old avatars for this user
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+
+        // Delete all files in user's folder except the new one
+        const { data: files, error: listError } = await supabase.storage
+            .from('avatars')
+            .list(user.id);
+
+        if (!listError && files && files.length > 0) {
+            const filesToDelete = files
+                .filter(file => file.name !== path.split('/').pop())
+                .map(file => `${user.id}/${file.name}`);
+
+            if (filesToDelete.length > 0) {
+                const { error: deleteError } = await supabase.storage
+                    .from('avatars')
+                    .remove(filesToDelete);
+
+                if (deleteError) {
+                    console.warn('[avatar upload] failed to delete old avatars:', deleteError);
+                } else {
+                    console.log(`[avatar upload] deleted ${filesToDelete.length} old avatars`);
+                }
+            }
         }
 
         return NextResponse.json({ url: publicUrl });

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import type { Profile } from '@/types';
-import { AvatarUploader } from '@/components/features/profile/AvatarUploader';
+import { AvatarEditSection } from '@/components/features/profile/AvatarEditSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +41,10 @@ export default async function ProfileEditPage() {
             data: { user: u },
         } = await supa.auth.getUser();
         if (!u) return;
-        await supa.from('profiles').update(parsed.data as any).eq('id', u.id);
+        const { error: updateError } = await (supa.from('profiles') as any).update(parsed.data).eq('id', u.id);
+        if (updateError) {
+            console.error('Error updating profile:', updateError);
+        }
     }
 
     return (
@@ -51,7 +54,7 @@ export default async function ProfileEditPage() {
                 <form action={save} className="space-y-6">
                     <div className="space-y-2">
                         <Label>Avatar</Label>
-                        <AvatarUploader currentUrl={profile?.avatar_url} />
+                        <AvatarEditSection initialAvatarUrl={profile?.avatar_url} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="full_name">Name</Label>
