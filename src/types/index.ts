@@ -19,6 +19,7 @@ export type {
 export interface Profile {
   id: string;
   username: string;
+  username_finalized: boolean;
   full_name: string | null;
   email: string;
   avatar_url: string | null;

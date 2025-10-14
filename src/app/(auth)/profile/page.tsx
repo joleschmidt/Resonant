@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Edit } from 'lucide-react';
 import type { Profile } from '@/types';
+import { Suspense } from 'react';
+import { InlineUsernameSetter } from '@/components/features/profile/InlineUsernameSetter';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +59,15 @@ export default async function ProfilePage() {
                 </div>
 
                 <ProfileCard profile={profile} showStats />
+
+                {!profile.username_finalized && (
+                    <div className="rounded-lg border p-6">
+                        <h2 className="mb-4 text-lg font-semibold">Benutzername festlegen</h2>
+                        <Suspense>
+                            <InlineUsernameSetter />
+                        </Suspense>
+                    </div>
+                )}
 
                 <div className="grid gap-6 md:grid-cols-2">
                     <div className="rounded-lg border p-6">

@@ -119,3 +119,33 @@ export const ACCOUNT_LIMITS = {
   },
 } as const;
 
+// Reserved usernames (routes, system, common)
+export const RESERVED_USERNAMES: readonly string[] = [
+  'admin',
+  'root',
+  'system',
+  'api',
+  'auth',
+  'login',
+  'signup',
+  'logout',
+  'me',
+  'profile',
+  'settings',
+  'users',
+  'about',
+  'help',
+  'support',
+  'terms',
+  'privacy',
+  'pricing',
+  'dashboard',
+  'app',
+  'static',
+  'assets',
+  'styles',
+  'next',
+  'media',
+  'images',
+];
+

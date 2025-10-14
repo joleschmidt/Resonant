@@ -8,10 +8,14 @@
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
+import { ProfileCompletionModal } from '@/components/features/profile/ProfileCompletionModal';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth state
     useAuth();
+    const profile = useAuthStore((s) => s.profile);
+    const isLoading = useAuthStore((s) => s.isLoading);
 
     // Handle magic-link / verification code on any route
     useEffect(() => {
@@ -43,6 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         run();
     }, []);
 
-    return <>{children}</>;
+    const mustComplete = !!profile && !profile.username_finalized;
+    return (
+        <>
+            {children}
+            <ProfileCompletionModal open={!!profile && !isLoading && mustComplete} onOpenChange={() => { }} />
+        </>
+    );
 }
 

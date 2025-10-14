@@ -4,18 +4,19 @@
  */
 
 import { z } from 'zod';
-import { GUITAR_TYPES } from '@/utils/constants';
+import { GUITAR_TYPES, RESERVED_USERNAMES } from '@/utils/constants';
 
 // Profile Update Schema
 export const profileUpdateSchema = z.object({
   username: z
     .string()
     .min(3, 'Benutzername muss mindestens 3 Zeichen lang sein')
-    .max(30, 'Benutzername darf maximal 30 Zeichen lang sein')
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      'Benutzername darf nur Buchstaben, Zahlen, _ und - enthalten'
-    )
+    .max(20, 'Benutzername darf maximal 20 Zeichen lang sein')
+    .regex(/^[a-z0-9_-]+$/, 'Nur Kleinbuchstaben, Zahlen, _ und - erlaubt')
+    .transform((v) => v.toLowerCase())
+    .refine((v) => !RESERVED_USERNAMES.includes(v), {
+      message: 'Dieser Benutzername ist reserviert',
+    })
     .optional(),
   full_name: z
     .string()
