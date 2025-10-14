@@ -1,0 +1,793 @@
+# JSON Schemas for AI & MCP Integration
+
+## Core Entity Schemas
+
+### User Profile Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/user-profile.json",
+  "title": "User Profile",
+  "description": "Complete user profile schema for AI processing",
+  "type": "object",
+  "required": ["id", "username", "verification_status", "account_type"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique user identifier"
+    },
+    "username": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{3,30}$",
+      "description": "Unique username"
+    },
+    "full_name": {
+      "type": ["string", "null"],
+      "maxLength": 100,
+      "description": "User's full name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User's email address"
+    },
+    "avatar_url": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Profile picture URL"
+    },
+    "bio": {
+      "type": ["string", "null"],
+      "maxLength": 500,
+      "description": "User biography"
+    },
+    "location": {
+      "type": ["string", "null"],
+      "maxLength": 100,
+      "description": "User location"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": ["unverified", "email_verified", "phone_verified", "identity_verified", "fully_verified"],
+      "description": "User verification level"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": ["basic", "verified", "premium", "store", "admin"],
+      "description": "Account type and permissions"
+    },
+    "seller_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "multipleOf": 0.1,
+      "description": "Average seller rating"
+    },
+    "buyer_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "multipleOf": 0.1,
+      "description": "Average buyer rating"
+    },
+    "total_sales": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total completed sales"
+    },
+    "total_purchases": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total purchases made"
+    },
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "preferred_brands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "User's preferred guitar brands"
+        },
+        "preferred_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["electric", "acoustic", "classical", "bass"]
+          },
+          "description": "User's preferred guitar types"
+        },
+        "price_range": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "User's preferred price range"
+        },
+        "search_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Preferred search radius in km"
+        }
+      },
+      "description": "User preferences for personalization"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Account creation timestamp"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last profile update timestamp"
+    },
+    "last_active_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last activity timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "user",
+    "privacy_level": "protected",
+    "searchable_fields": ["username", "location", "bio"],
+    "recommendation_fields": ["preferences", "seller_rating", "total_sales"],
+    "analysis_fields": ["verification_status", "account_type", "created_at"]
+  }
+}
+```
+
+### Guitar Listing Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/guitar-listing.json",
+  "title": "Guitar Listing",
+  "description": "Complete guitar listing schema optimized for AI processing",
+  "type": "object",
+  "required": ["id", "title", "description", "brand", "guitar_type", "condition", "price", "seller_id", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique listing identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 100,
+      "description": "Listing title for display and search"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 50,
+      "maxLength": 2000,
+      "description": "Detailed description of the guitar"
+    },
+    "slug": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "URL-friendly slug"
+    },
+    "brand": {
+      "type": "string",
+      "enum": [
+        "Fender", "Gibson", "Martin", "Taylor", "Ibanez", "ESP", "Yamaha",
+        "PRS", "Rickenbacker", "Gretsch", "Epiphone", "Squier", "Jackson",
+        "Schecter", "Washburn", "Dean", "BC Rich", "Charvel", "Kramer", "Other"
+      ],
+      "description": "Guitar manufacturer brand"
+    },
+    "model": {
+      "type": ["string", "null"],
+      "maxLength": 100,
+      "description": "Specific guitar model"
+    },
+    "series": {
+      "type": ["string", "null"],
+      "maxLength": 100,
+      "description": "Guitar series or line"
+    },
+    "year": {
+      "type": ["integer", "null"],
+      "minimum": 1900,
+      "maximum": 2030,
+      "description": "Year of manufacture"
+    },
+    "country_of_origin": {
+      "type": ["string", "null"],
+      "maxLength": 100,
+      "description": "Country where guitar was manufactured"
+    },
+    "guitar_type": {
+      "type": "string",
+      "enum": [
+        "electric", "acoustic", "classical", "bass", "hollow_body",
+        "semi_hollow", "twelve_string", "baritone", "travel", "resonator"
+      ],
+      "description": "Type of guitar"
+    },
+    "specifications": {
+      "type": "object",
+      "properties": {
+        "body_type": {
+          "type": ["string", "null"],
+          "description": "Body shape and type"
+        },
+        "body_material": {
+          "type": ["string", "null"],
+          "description": "Primary body wood material"
+        },
+        "neck_material": {
+          "type": ["string", "null"],
+          "description": "Neck wood material"
+        },
+        "fretboard_material": {
+          "type": ["string", "null"],
+          "description": "Fretboard wood material"
+        },
+        "number_of_frets": {
+          "type": ["integer", "null"],
+          "minimum": 12,
+          "maximum": 36,
+          "description": "Total number of frets"
+        },
+        "scale_length": {
+          "type": ["number", "null"],
+          "description": "Scale length in inches"
+        },
+        "pickup_configuration": {
+          "type": ["string", "null"],
+          "description": "Pickup layout (e.g., HSS, HH, SSS)"
+        },
+        "electronics": {
+          "type": ["string", "null"],
+          "description": "Electronic components and features"
+        },
+        "hardware": {
+          "type": ["string", "null"],
+          "description": "Hardware components (bridge, tuners, etc.)"
+        },
+        "finish": {
+          "type": ["string", "null"],
+          "description": "Guitar finish type and color"
+        }
+      },
+      "description": "Detailed technical specifications"
+    },
+    "condition": {
+      "type": "string",
+      "enum": ["mint", "excellent", "very_good", "good", "fair", "poor", "for_parts"],
+      "description": "Overall condition of the guitar"
+    },
+    "condition_notes": {
+      "type": ["string", "null"],
+      "maxLength": 500,
+      "description": "Detailed condition description"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 50000,
+      "multipleOf": 0.01,
+      "description": "Asking price in EUR"
+    },
+    "original_price": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Original retail price when new"
+    },
+    "price_negotiable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether price is negotiable"
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "description": "Array of image URLs"
+        },
+        "videos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxItems": 3,
+          "description": "Array of video URLs"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "maxItems": 5,
+          "description": "Array of document URLs (certificates, manuals)"
+        }
+      },
+      "required": ["images"],
+      "description": "Media files associated with listing"
+    },
+    "location": {
+      "type": "object",
+      "required": ["city", "country"],
+      "properties": {
+        "city": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "City where guitar is located"
+        },
+        "state": {
+          "type": ["string", "null"],
+          "maxLength": 100,
+          "description": "State or region"
+        },
+        "country": {
+          "type": "string",
+          "default": "DE",
+          "description": "Country code (ISO 3166-1 alpha-2)"
+        },
+        "postal_code": {
+          "type": ["string", "null"],
+          "description": "Postal code for shipping calculations"
+        }
+      },
+      "description": "Geographic location information"
+    },
+    "shipping": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether shipping is available"
+        },
+        "cost": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Shipping cost in EUR"
+        },
+        "methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["standard", "express", "registered", "insured"]
+          },
+          "description": "Available shipping methods"
+        }
+      },
+      "description": "Shipping options and costs"
+    },
+    "pickup_available": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether local pickup is available"
+    },
+    "case_included": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a case is included"
+    },
+    "accessories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Included accessories"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 30
+      },
+      "maxItems": 10,
+      "description": "User-defined tags for categorization"
+    },
+    "seller_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the user who created the listing"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "pending", "sold", "expired", "removed", "reported"],
+      "description": "Current listing status"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether listing is featured/promoted"
+    },
+    "boost_expires_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When promotional boost expires"
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "views": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total view count"
+        },
+        "favorites_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of users who favorited"
+        },
+        "inquiries_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of inquiries received"
+        },
+        "offers_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of offers received"
+        }
+      },
+      "description": "Listing performance metrics"
+    },
+    "search_vector": {
+      "type": ["string", "null"],
+      "description": "Full-text search vector (PostgreSQL tsvector)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When listing was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When listing was last updated"
+    },
+    "published_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When listing was published"
+    },
+    "sold_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When listing was marked as sold"
+    },
+    "expires_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When listing expires"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "listing",
+    "privacy_level": "public",
+    "searchable_fields": [
+      "title", "description", "brand", "model", "guitar_type", 
+      "condition", "tags", "location.city"
+    ],
+    "recommendation_fields": [
+      "brand", "model", "guitar_type", "price", "condition", 
+      "specifications", "year"
+    ],
+    "analysis_fields": [
+      "price", "condition", "metrics", "created_at", "location"
+    ],
+    "moderation_fields": [
+      "title", "description", "condition_notes"
+    ]
+  }
+}
+```
+
+### Message Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/message.json",
+  "title": "Message",
+  "description": "Message schema for conversations between users",
+  "type": "object",
+  "required": ["id", "conversation_id", "sender_id", "content", "message_type"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique message identifier"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the conversation this message belongs to"
+    },
+    "sender_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the user who sent the message"
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "Message content"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": ["text", "image", "offer", "system"],
+      "description": "Type of message"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "maxItems": 5,
+      "description": "Attached files or images"
+    },
+    "offer_details": {
+      "type": ["object", "null"],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Offer amount in EUR"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When offer expires"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "accepted", "declined", "expired"],
+          "description": "Offer status"
+        }
+      },
+      "description": "Details for offer-type messages"
+    },
+    "read_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When message was read by recipient"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When message was created"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "message",
+    "privacy_level": "private",
+    "searchable_fields": ["content"],
+    "moderation_fields": ["content"],
+    "analysis_fields": ["message_type", "created_at"]
+  }
+}
+```
+
+### Transaction Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/transaction.json",
+  "title": "Transaction",
+  "description": "Transaction schema for guitar sales",
+  "type": "object",
+  "required": ["id", "listing_id", "buyer_id", "seller_id", "amount", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique transaction identifier"
+    },
+    "listing_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the listing being purchased"
+    },
+    "buyer_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the buyer"
+    },
+    "seller_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the seller"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "multipleOf": 0.01,
+      "description": "Transaction amount in EUR"
+    },
+    "currency": {
+      "type": "string",
+      "default": "EUR",
+      "enum": ["EUR", "USD"],
+      "description": "Transaction currency"
+    },
+    "payment_method": {
+      "type": ["string", "null"],
+      "enum": ["sepa", "paypal", "stripe", "klarna", "bank_transfer"],
+      "description": "Payment method used"
+    },
+    "payment_intent_id": {
+      "type": ["string", "null"],
+      "description": "External payment provider transaction ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending", "paid", "shipped", "delivered", 
+        "completed", "cancelled", "disputed", "refunded"
+      ],
+      "description": "Current transaction status"
+    },
+    "shipping": {
+      "type": ["object", "null"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "Shipping method"
+        },
+        "tracking_number": {
+          "type": ["string", "null"],
+          "description": "Shipping tracking number"
+        },
+        "carrier": {
+          "type": ["string", "null"],
+          "description": "Shipping carrier"
+        },
+        "cost": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Shipping cost in EUR"
+        },
+        "estimated_delivery": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Estimated delivery date"
+        }
+      },
+      "description": "Shipping information"
+    },
+    "escrow": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether escrow service is used"
+        },
+        "released_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When escrow funds were released"
+        }
+      },
+      "description": "Escrow service details"
+    },
+    "fees": {
+      "type": "object",
+      "properties": {
+        "platform_fee": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Platform commission fee"
+        },
+        "payment_fee": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Payment processing fee"
+        },
+        "total_fees": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total fees charged"
+        }
+      },
+      "description": "Transaction fees breakdown"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When transaction was created"
+    },
+    "paid_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When payment was completed"
+    },
+    "shipped_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When item was shipped"
+    },
+    "delivered_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When item was delivered"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When transaction was completed"
+    },
+    "cancelled_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When transaction was cancelled"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "transaction",
+    "privacy_level": "restricted",
+    "analysis_fields": [
+      "amount", "status", "payment_method", "created_at", "fees"
+    ]
+  }
+}
+```
+
+## AI Context Metadata
+
+Each schema includes `x-ai-context` metadata that provides:
+
+- **entity_type**: Categorizes the data for AI processing
+- **privacy_level**: Defines access restrictions (public, protected, private, restricted)
+- **searchable_fields**: Fields that should be included in search indexes
+- **recommendation_fields**: Fields used for AI recommendations
+- **analysis_fields**: Fields suitable for analytics and insights
+- **moderation_fields**: Fields that require content moderation
+
+## MCP Integration Benefits
+
+These schemas enable:
+
+1. **Structured Data Access**: AI systems can understand data structure and relationships
+2. **Type Safety**: Proper data validation and type checking
+3. **Privacy Compliance**: Clear privacy levels for different data types
+4. **Search Optimization**: Defined searchable fields for better search results
+5. **Content Moderation**: Identified fields that need moderation
+6. **Analytics Ready**: Pre-defined fields for analysis and insights
+
+## Usage in Cursor & ChatGPT
+
+These schemas allow AI systems to:
+- Understand your data structure automatically
+- Generate type-safe code
+- Suggest appropriate queries and filters
+- Validate data integrity
+- Respect privacy boundaries
+- Generate accurate API documentation
+
+Place these files in a `/schemas` directory in your project root for optimal AI integration.

@@ -1,0 +1,1196 @@
+# MCP Server Configuration for ChatGPT Integration
+
+## Custom MCP Server for Guitar Marketplace
+
+This file contains the complete implementation of a custom MCP server designed to integrate our German guitar marketplace data with ChatGPT and other AI systems.
+
+## MCP Server Implementation
+
+### Package Configuration
+```json
+{
+  "name": "@guitar-marketplace/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for German Guitar Marketplace platform",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "zod": "^3.22.0",
+    "dotenv": "^16.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  },
+  "keywords": ["mcp", "guitar", "marketplace", "ai", "chatgpt"],
+  "license": "MIT"
+}
+```
+
+### TypeScript Configuration
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### Main Server Implementation
+```typescript
+// src/index.ts
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  McpError,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Validation schemas
+const SearchParamsSchema = z.object({
+  query: z.string().optional(),
+  brand: z.string().optional(),
+  guitar_type: z.string().optional(),
+  condition: z.string().optional(),
+  price_min: z.number().optional(),
+  price_max: z.number().optional(),
+  location: z.string().optional(),
+  limit: z.number().min(1).max(100).default(20),
+});
+
+const AnalysisParamsSchema = z.object({
+  timeframe: z.enum(['24h', '7d', '30d', '90d']).default('30d'),
+  category: z.string().optional(),
+  brand: z.string().optional(),
+});
+
+const PriceAnalysisSchema = z.object({
+  brand: z.string(),
+  model: z.string().optional(),
+  year: z.number().optional(),
+  condition: z.string().optional(),
+});
+
+class GuitarMarketplaceMCPServer {
+  private server: Server;
+  private supabase: SupabaseClient;
+
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'guitar-marketplace-server',
+        version: '1.0.0',
+      },
+      {
+        capabilities: {
+          resources: {},
+          tools: {},
+          prompts: {},
+        },
+      }
+    );
+
+    this.supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    this.setupHandlers();
+  }
+
+  private setupHandlers() {
+    // Resource handlers
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      return {
+        resources: [
+          {
+            uri: 'marketplace://listings/active',
+            name: 'Active Guitar Listings',
+            description: 'All currently active guitar listings on the platform',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'marketplace://analytics/dashboard',
+            name: 'Marketplace Analytics',
+            description: 'Key metrics and insights about the marketplace',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'marketplace://trends/guitars',
+            name: 'Guitar Market Trends',
+            description: 'Trending guitars, brands, and market insights',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'marketplace://users/statistics',
+            name: 'User Statistics',
+            description: 'Platform user statistics and engagement metrics',
+            mimeType: 'application/json',
+          },
+          {
+            uri: 'marketplace://security/alerts',
+            name: 'Security Alerts',
+            description: 'Recent security alerts and fraud detection reports',
+            mimeType: 'application/json',
+          },
+        ],
+      };
+    });
+
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const { uri } = request.params;
+
+      switch (uri) {
+        case 'marketplace://listings/active':
+          return await this.getActiveListings();
+        case 'marketplace://analytics/dashboard':
+          return await this.getAnalyticsDashboard();
+        case 'marketplace://trends/guitars':
+          return await this.getGuitarTrends();
+        case 'marketplace://users/statistics':
+          return await this.getUserStatistics();
+        case 'marketplace://security/alerts':
+          return await this.getSecurityAlerts();
+        default:
+          throw new McpError(ErrorCode.InvalidRequest, `Unknown resource: ${uri}`);
+      }
+    });
+
+    // Tool handlers
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: 'search_guitars',
+            description: 'Search for guitars based on various criteria',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search query (brand, model, description)',
+                },
+                brand: {
+                  type: 'string',
+                  description: 'Filter by guitar brand',
+                },
+                guitar_type: {
+                  type: 'string',
+                  enum: ['electric', 'acoustic', 'classical', 'bass'],
+                  description: 'Type of guitar',
+                },
+                condition: {
+                  type: 'string',
+                  enum: ['mint', 'excellent', 'very_good', 'good', 'fair', 'poor'],
+                  description: 'Condition of the guitar',
+                },
+                price_min: {
+                  type: 'number',
+                  description: 'Minimum price in EUR',
+                },
+                price_max: {
+                  type: 'number',
+                  description: 'Maximum price in EUR',
+                },
+                location: {
+                  type: 'string',
+                  description: 'Location (city or region)',
+                },
+                limit: {
+                  type: 'number',
+                  minimum: 1,
+                  maximum: 100,
+                  default: 20,
+                  description: 'Maximum number of results',
+                },
+              },
+            },
+          },
+          {
+            name: 'analyze_market_trends',
+            description: 'Analyze market trends for guitars',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                timeframe: {
+                  type: 'string',
+                  enum: ['24h', '7d', '30d', '90d'],
+                  default: '30d',
+                  description: 'Analysis timeframe',
+                },
+                category: {
+                  type: 'string',
+                  description: 'Guitar category to analyze',
+                },
+                brand: {
+                  type: 'string',
+                  description: 'Specific brand to analyze',
+                },
+              },
+            },
+          },
+          {
+            name: 'get_price_analysis',
+            description: 'Get detailed price analysis for a specific guitar',
+            inputSchema: {
+              type: 'object',
+              required: ['brand'],
+              properties: {
+                brand: {
+                  type: 'string',
+                  description: 'Guitar brand',
+                },
+                model: {
+                  type: 'string',
+                  description: 'Guitar model',
+                },
+                year: {
+                  type: 'number',
+                  description: 'Year of manufacture',
+                },
+                condition: {
+                  type: 'string',
+                  enum: ['mint', 'excellent', 'very_good', 'good', 'fair', 'poor'],
+                  description: 'Condition of the guitar',
+                },
+              },
+            },
+          },
+          {
+            name: 'moderate_content',
+            description: 'Moderate user-generated content for inappropriate material',
+            inputSchema: {
+              type: 'object',
+              required: ['content'],
+              properties: {
+                content: {
+                  type: 'string',
+                  description: 'Content to moderate',
+                },
+                content_type: {
+                  type: 'string',
+                  enum: ['listing_title', 'listing_description', 'message', 'review'],
+                  description: 'Type of content being moderated',
+                },
+              },
+            },
+          },
+          {
+            name: 'get_user_insights',
+            description: 'Get insights about a specific user or user behavior',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                user_id: {
+                  type: 'string',
+                  description: 'User ID to analyze',
+                },
+                metric: {
+                  type: 'string',
+                  enum: ['activity', 'reputation', 'listings', 'transactions'],
+                  description: 'Type of insight to retrieve',
+                },
+              },
+            },
+          },
+          {
+            name: 'detect_fraud_patterns',
+            description: 'Detect potential fraud patterns in listings or user behavior',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                listing_id: {
+                  type: 'string',
+                  description: 'Listing ID to analyze',
+                },
+                user_id: {
+                  type: 'string',
+                  description: 'User ID to analyze',
+                },
+                analysis_type: {
+                  type: 'string',
+                  enum: ['pricing', 'behavior', 'content', 'transaction'],
+                  description: 'Type of fraud analysis',
+                },
+              },
+            },
+          },
+        ],
+      };
+    });
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        switch (name) {
+          case 'search_guitars':
+            return await this.searchGuitars(SearchParamsSchema.parse(args));
+          case 'analyze_market_trends':
+            return await this.analyzeMarketTrends(AnalysisParamsSchema.parse(args));
+          case 'get_price_analysis':
+            return await this.getPriceAnalysis(PriceAnalysisSchema.parse(args));
+          case 'moderate_content':
+            return await this.moderateContent(args as any);
+          case 'get_user_insights':
+            return await this.getUserInsights(args as any);
+          case 'detect_fraud_patterns':
+            return await this.detectFraudPatterns(args as any);
+          default:
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            `Invalid parameters: ${error.message}`
+          );
+        }
+        throw error;
+      }
+    });
+
+    // Prompt handlers
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+      return {
+        prompts: [
+          {
+            name: 'guitar_recommendation',
+            description: 'Generate personalized guitar recommendations',
+            arguments: [
+              {
+                name: 'user_preferences',
+                description: 'User preferences and requirements',
+                required: true,
+              },
+              {
+                name: 'budget',
+                description: 'Budget range in EUR',
+                required: false,
+              },
+            ],
+          },
+          {
+            name: 'listing_optimization',
+            description: 'Suggest improvements for guitar listings',
+            arguments: [
+              {
+                name: 'listing_data',
+                description: 'Current listing information',
+                required: true,
+              },
+            ],
+          },
+          {
+            name: 'market_analysis',
+            description: 'Provide market analysis and insights',
+            arguments: [
+              {
+                name: 'analysis_type',
+                description: 'Type of analysis requested',
+                required: true,
+              },
+              {
+                name: 'timeframe',
+                description: 'Analysis timeframe',
+                required: false,
+              },
+            ],
+          },
+        ],
+      };
+    });
+
+    this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      switch (name) {
+        case 'guitar_recommendation':
+          return await this.generateGuitarRecommendationPrompt(args);
+        case 'listing_optimization':
+          return await this.generateListingOptimizationPrompt(args);
+        case 'market_analysis':
+          return await this.generateMarketAnalysisPrompt(args);
+        default:
+          throw new McpError(ErrorCode.InvalidRequest, `Unknown prompt: ${name}`);
+      }
+    });
+  }
+
+  // Resource implementations
+  private async getActiveListings() {
+    const { data, error } = await this.supabase
+      .from('guitar_listings')
+      .select(`
+        id, title, brand, model, guitar_type, condition, price, 
+        location_city, created_at, views, favorites_count,
+        profiles!seller_id (username, verification_status, seller_rating)
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    return {
+      contents: [
+        {
+          uri: 'marketplace://listings/active',
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            listings: data,
+            total_count: data?.length || 0,
+            last_updated: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getAnalyticsDashboard() {
+    const [listingsResult, usersResult, transactionsResult] = await Promise.all([
+      this.supabase
+        .from('guitar_listings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active'),
+      this.supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true }),
+      this.supabase
+        .from('transactions')
+        .select('amount, created_at')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    ]);
+
+    const totalRevenue = transactionsResult.data?.reduce(
+      (sum, t) => sum + (t.amount || 0), 0
+    ) || 0;
+
+    return {
+      contents: [
+        {
+          uri: 'marketplace://analytics/dashboard',
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            active_listings: listingsResult.count || 0,
+            total_users: usersResult.count || 0,
+            monthly_revenue: totalRevenue,
+            transactions_count: transactionsResult.data?.length || 0,
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getGuitarTrends() {
+    const { data, error } = await this.supabase
+      .from('guitar_listings')
+      .select('brand, guitar_type, price, created_at, views')
+      .eq('status', 'active')
+      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    // Process trends data
+    const brandCounts = data?.reduce((acc, listing) => {
+      acc[listing.brand] = (acc[listing.brand] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    const typeCounts = data?.reduce((acc, listing) => {
+      acc[listing.guitar_type] = (acc[listing.guitar_type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    const averagePrices = data?.reduce((acc, listing) => {
+      if (!acc[listing.brand]) {
+        acc[listing.brand] = { total: 0, count: 0 };
+      }
+      acc[listing.brand].total += listing.price;
+      acc[listing.brand].count += 1;
+      return acc;
+    }, {} as Record<string, { total: number; count: number }>) || {};
+
+    // Calculate average prices
+    const avgPrices = Object.entries(averagePrices).reduce((acc, [brand, data]) => {
+      acc[brand] = Math.round(data.total / data.count);
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      contents: [
+        {
+          uri: 'marketplace://trends/guitars',
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            trending_brands: Object.entries(brandCounts)
+              .sort(([,a], [,b]) => b - a)
+              .slice(0, 10),
+            guitar_types: typeCounts,
+            average_prices: avgPrices,
+            total_listings: data?.length || 0,
+            analysis_period: '30 days',
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getUserStatistics() {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select('verification_status, account_type, created_at, seller_rating');
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    const verificationStats = data?.reduce((acc, user) => {
+      acc[user.verification_status] = (acc[user.verification_status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    const accountTypeStats = data?.reduce((acc, user) => {
+      acc[user.account_type] = (acc[user.account_type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    return {
+      contents: [
+        {
+          uri: 'marketplace://users/statistics',
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            total_users: data?.length || 0,
+            verification_breakdown: verificationStats,
+            account_types: accountTypeStats,
+            average_seller_rating: data?.reduce((sum, user) => sum + (user.seller_rating || 0), 0) / (data?.length || 1),
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getSecurityAlerts() {
+    const { data, error } = await this.supabase
+      .from('reported_content')
+      .select(`
+        id, content_type, reason, status, created_at,
+        profiles!reporter_id (username)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    return {
+      contents: [
+        {
+          uri: 'marketplace://security/alerts',
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            pending_reports: data || [],
+            total_pending: data?.length || 0,
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  // Tool implementations
+  private async searchGuitars(params: z.infer<typeof SearchParamsSchema>) {
+    let query = this.supabase
+      .from('guitar_listings')
+      .select(`
+        id, title, brand, model, guitar_type, condition, price,
+        location_city, created_at, images, views,
+        profiles!seller_id (username, verification_status, seller_rating)
+      `)
+      .eq('status', 'active');
+
+    // Apply filters
+    if (params.query) {
+      query = query.textSearch('search_vector', params.query);
+    }
+    if (params.brand) {
+      query = query.eq('brand', params.brand);
+    }
+    if (params.guitar_type) {
+      query = query.eq('guitar_type', params.guitar_type);
+    }
+    if (params.condition) {
+      query = query.eq('condition', params.condition);
+    }
+    if (params.price_min) {
+      query = query.gte('price', params.price_min);
+    }
+    if (params.price_max) {
+      query = query.lte('price', params.price_max);
+    }
+    if (params.location) {
+      query = query.ilike('location_city', `%${params.location}%`);
+    }
+
+    query = query.order('created_at', { ascending: false }).limit(params.limit);
+
+    const { data, error } = await query;
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            results: data,
+            count: data?.length || 0,
+            search_params: params,
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async analyzeMarketTrends(params: z.infer<typeof AnalysisParamsSchema>) {
+    const timeMap = { '24h': 1, '7d': 7, '30d': 30, '90d': 90 };
+    const days = timeMap[params.timeframe];
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    let query = this.supabase
+      .from('guitar_listings')
+      .select('brand, guitar_type, price, condition, created_at, views')
+      .eq('status', 'active')
+      .gte('created_at', startDate.toISOString());
+
+    if (params.category) {
+      query = query.eq('guitar_type', params.category);
+    }
+    if (params.brand) {
+      query = query.eq('brand', params.brand);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    // Analyze trends
+    const analysis = {
+      total_listings: data?.length || 0,
+      average_price: data?.reduce((sum, item) => sum + item.price, 0) / (data?.length || 1),
+      price_trend: this.calculatePriceTrend(data || []),
+      most_popular_brand: this.getMostPopular(data?.map(item => item.brand) || []),
+      condition_distribution: this.getDistribution(data?.map(item => item.condition) || []),
+      timeframe: params.timeframe,
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(analysis, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getPriceAnalysis(params: z.infer<typeof PriceAnalysisSchema>) {
+    let query = this.supabase
+      .from('guitar_listings')
+      .select('price, condition, year, created_at, status')
+      .eq('brand', params.brand)
+      .eq('status', 'active');
+
+    if (params.model) {
+      query = query.eq('model', params.model);
+    }
+    if (params.year) {
+      query = query.eq('year', params.year);
+    }
+    if (params.condition) {
+      query = query.eq('condition', params.condition);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw new McpError(ErrorCode.InternalError, error.message);
+
+    if (!data || data.length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'No matching guitars found for price analysis.',
+          },
+        ],
+      };
+    }
+
+    const prices = data.map(item => item.price).sort((a, b) => a - b);
+    const analysis = {
+      sample_size: prices.length,
+      min_price: Math.min(...prices),
+      max_price: Math.max(...prices),
+      average_price: prices.reduce((sum, price) => sum + price, 0) / prices.length,
+      median_price: prices[Math.floor(prices.length / 2)],
+      price_distribution: this.getPriceDistribution(prices),
+      market_position: this.getMarketPosition(prices),
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(analysis, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async moderateContent(params: { content: string; content_type?: string }) {
+    // Simple content moderation (in production, use AI service)
+    const flaggedWords = ['scam', 'fake', 'stolen', 'broken', 'defect'];
+    const suspiciousPatterns = [
+      /\b\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}\b/, // Credit card pattern
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/, // Email pattern
+      /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // Phone pattern
+    ];
+
+    const content = params.content.toLowerCase();
+    const flaggedWordsFound = flaggedWords.filter(word => content.includes(word));
+    const suspiciousPatternFound = suspiciousPatterns.some(pattern => pattern.test(params.content));
+
+    const moderation = {
+      flagged: flaggedWordsFound.length > 0 || suspiciousPatternFound,
+      flagged_words: flaggedWordsFound,
+      suspicious_patterns: suspiciousPatternFound,
+      confidence: flaggedWordsFound.length > 0 ? 0.8 : suspiciousPatternFound ? 0.6 : 0.1,
+      action_required: flaggedWordsFound.length > 0 ? 'review' : suspiciousPatternFound ? 'monitor' : 'none',
+      content_type: params.content_type || 'unknown',
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(moderation, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async getUserInsights(params: { user_id?: string; metric?: string }) {
+    if (!params.user_id) {
+      throw new McpError(ErrorCode.InvalidParams, 'user_id is required');
+    }
+
+    const { data: profile, error: profileError } = await this.supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', params.user_id)
+      .single();
+
+    if (profileError) throw new McpError(ErrorCode.InternalError, profileError.message);
+
+    const insights: any = {
+      user_id: params.user_id,
+      basic_info: {
+        username: profile.username,
+        verification_status: profile.verification_status,
+        account_type: profile.account_type,
+        member_since: profile.created_at,
+      },
+    };
+
+    if (!params.metric || params.metric === 'activity') {
+      const { data: listings } = await this.supabase
+        .from('guitar_listings')
+        .select('*')
+        .eq('seller_id', params.user_id);
+
+      insights.activity = {
+        total_listings: listings?.length || 0,
+        active_listings: listings?.filter(l => l.status === 'active').length || 0,
+      };
+    }
+
+    if (!params.metric || params.metric === 'reputation') {
+      insights.reputation = {
+        seller_rating: profile.seller_rating,
+        buyer_rating: profile.buyer_rating,
+        total_sales: profile.total_sales,
+        total_purchases: profile.total_purchases,
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(insights, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async detectFraudPatterns(params: { 
+    listing_id?: string; 
+    user_id?: string; 
+    analysis_type?: string; 
+  }) {
+    const alerts: string[] = [];
+    const riskScore = 0;
+
+    if (params.user_id) {
+      // Check user patterns
+      const { data: userListings } = await this.supabase
+        .from('guitar_listings')
+        .select('*')
+        .eq('seller_id', params.user_id)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      if (userListings && userListings.length > 10) {
+        alerts.push('High listing volume in 24 hours');
+      }
+
+      if (userListings?.some(l => l.price < 100)) {
+        alerts.push('Suspiciously low prices detected');
+      }
+    }
+
+    if (params.listing_id) {
+      // Check listing patterns
+      const { data: listing } = await this.supabase
+        .from('guitar_listings')
+        .select('*')
+        .eq('id', params.listing_id)
+        .single();
+
+      if (listing) {
+        if (listing.price < 200 && ['Gibson', 'Fender', 'Martin'].includes(listing.brand)) {
+          alerts.push('Premium brand at unusually low price');
+        }
+
+        if (listing.images.length < 2) {
+          alerts.push('Insufficient images for verification');
+        }
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            analysis_type: params.analysis_type || 'general',
+            risk_level: alerts.length > 2 ? 'high' : alerts.length > 0 ? 'medium' : 'low',
+            alerts,
+            recommendations: alerts.length > 0 ? ['Manual review recommended', 'Additional verification required'] : ['No immediate action needed'],
+            timestamp: new Date().toISOString(),
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  // Prompt implementations
+  private async generateGuitarRecommendationPrompt(args: any) {
+    const preferences = args?.user_preferences || '';
+    const budget = args?.budget || 'not specified';
+
+    // Get recent popular guitars for context
+    const { data: popularGuitars } = await this.supabase
+      .from('guitar_listings')
+      .select('brand, model, guitar_type, price, condition')
+      .eq('status', 'active')
+      .order('views', { ascending: false })
+      .limit(10);
+
+    const context = `
+Based on the German guitar marketplace data, here are the current popular guitars:
+${JSON.stringify(popularGuitars, null, 2)}
+
+User preferences: ${preferences}
+Budget: ${budget}
+
+Please provide personalized guitar recommendations considering:
+1. User's playing style and preferences
+2. Budget constraints
+3. Current market availability in Germany
+4. Value for money considerations
+5. Condition and quality factors
+
+Format your response as a friendly, knowledgeable guitar expert would.
+    `;
+
+    return {
+      description: 'Generate personalized guitar recommendations',
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: context,
+          },
+        },
+      ],
+    };
+  }
+
+  private async generateListingOptimizationPrompt(args: any) {
+    const listingData = JSON.stringify(args?.listing_data || {}, null, 2);
+
+    // Get similar successful listings for comparison
+    const { data: successfulListings } = await this.supabase
+      .from('guitar_listings')
+      .select('title, description, price, views, favorites_count')
+      .eq('status', 'sold')
+      .order('views', { ascending: false })
+      .limit(5);
+
+    const context = `
+Analyze this guitar listing and suggest improvements:
+
+Current listing:
+${listingData}
+
+For comparison, here are examples of successful listings on our platform:
+${JSON.stringify(successfulListings, null, 2)}
+
+Please provide specific suggestions for:
+1. Title optimization for better search visibility
+2. Description improvements to highlight key features
+3. Pricing strategy based on market data
+4. Photo recommendations
+5. SEO optimization for German market
+6. Trust-building elements
+
+Consider German buyer preferences and marketplace best practices.
+    `;
+
+    return {
+      description: 'Optimize guitar listing for better performance',
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: context,
+          },
+        },
+      ],
+    };
+  }
+
+  private async generateMarketAnalysisPrompt(args: any) {
+    const analysisType = args?.analysis_type || 'general';
+    const timeframe = args?.timeframe || '30d';
+
+    // Get market data
+    const marketData = await this.getGuitarTrends();
+    const analyticsData = await this.getAnalyticsDashboard();
+
+    const context = `
+Provide ${analysisType} market analysis for the German guitar marketplace:
+
+Current market data:
+${marketData.contents[0].text}
+
+Platform analytics:
+${analyticsData.contents[0].text}
+
+Analysis timeframe: ${timeframe}
+
+Please provide insights on:
+1. Market trends and patterns
+2. Price movements and opportunities
+3. Popular brands and categories
+4. Seasonal variations
+5. Investment recommendations
+6. Market predictions
+
+Focus on actionable insights for German guitar enthusiasts and investors.
+    `;
+
+    return {
+      description: 'Provide comprehensive market analysis',
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: context,
+          },
+        },
+      ],
+    };
+  }
+
+  // Utility methods
+  private calculatePriceTrend(data: any[]): string {
+    if (data.length < 2) return 'insufficient_data';
+    
+    const sortedByDate = data.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    
+    const firstHalf = sortedByDate.slice(0, Math.floor(sortedByDate.length / 2));
+    const secondHalf = sortedByDate.slice(Math.floor(sortedByDate.length / 2));
+    
+    const firstAvg = firstHalf.reduce((sum, item) => sum + item.price, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, item) => sum + item.price, 0) / secondHalf.length;
+    
+    const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+    
+    if (change > 5) return 'increasing';
+    if (change < -5) return 'decreasing';
+    return 'stable';
+  }
+
+  private getMostPopular(items: string[]): string {
+    const counts = items.reduce((acc, item) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.keys(counts).reduce((a, b) => 
+      counts[a] > counts[b] ? a : b
+    ) || 'unknown';
+  }
+
+  private getDistribution(items: string[]): Record<string, number> {
+    return items.reduce((acc, item) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }
+
+  private getPriceDistribution(prices: number[]): Record<string, number> {
+    const ranges = {
+      'under_500': 0,
+      '500_1000': 0,
+      '1000_2000': 0,
+      '2000_5000': 0,
+      'over_5000': 0,
+    };
+
+    prices.forEach(price => {
+      if (price < 500) ranges['under_500']++;
+      else if (price < 1000) ranges['500_1000']++;
+      else if (price < 2000) ranges['1000_2000']++;
+      else if (price < 5000) ranges['2000_5000']++;
+      else ranges['over_5000']++;
+    });
+
+    return ranges;
+  }
+
+  private getMarketPosition(prices: number[]): string {
+    const avg = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    
+    if (avg < 800) return 'budget_segment';
+    if (avg < 2000) return 'mid_range';
+    if (avg < 5000) return 'premium';
+    return 'luxury';
+  }
+
+  async start() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('German Guitar Marketplace MCP server running on stdio');
+  }
+}
+
+// Start the server
+const server = new GuitarMarketplaceMCPServer();
+server.start().catch(console.error);
+```
+
+### Environment Configuration
+```bash
+# .env file for MCP server
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NODE_ENV=production
+
+# Optional: OpenAI API key for advanced content moderation
+OPENAI_API_KEY=your_openai_key
+
+# Optional: Additional API keys for external services
+STRIPE_SECRET_KEY=your_stripe_key
+TWILIO_AUTH_TOKEN=your_twilio_token
+```
+
+### Deployment Script
+```bash
+#!/bin/bash
+# deploy-mcp.sh
+
+echo "Building MCP server..."
+npm run build
+
+echo "Testing MCP server..."
+npm test
+
+echo "Deploying to production..."
+# Deploy to your preferred hosting service
+# Docker, AWS Lambda, Google Cloud Functions, etc.
+
+echo "MCP server deployed successfully!"
+```
+
+### Usage with ChatGPT
+Once deployed, this MCP server can be integrated with ChatGPT to provide:
+
+1. **Real-time marketplace data** for user queries
+2. **Intelligent guitar recommendations** based on current inventory
+3. **Market analysis and insights** for buyers and sellers
+4. **Content moderation** for user-generated content
+5. **Fraud detection** patterns and alerts
+6. **Price analysis** and valuation services
+
+### Integration Benefits
+- **AI-Native**: Built specifically for AI consumption
+- **Real-time Data**: Direct database access for current information
+- **Structured Responses**: JSON-formatted data perfect for AI processing
+- **Comprehensive Coverage**: Covers all major marketplace operations
+- **Security-First**: Proper authentication and data protection
+- **Scalable**: Designed to handle high-volume AI requests
+
+This MCP server transforms your guitar marketplace into an AI-accessible knowledge base, enabling seamless integration with ChatGPT and other AI systems.

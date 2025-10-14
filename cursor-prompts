@@ -1,0 +1,381 @@
+# Cursor Composer Prompts & AI Templates
+
+## Cursor Composer Optimization
+
+This file contains pre-written prompts and templates optimized for Cursor's Composer feature, enabling rapid development of our German guitar marketplace platform.
+
+## Core Prompts for Development
+
+### 1. Component Generation Prompt
+```
+Create a new React component for [COMPONENT_NAME] following our project patterns:
+
+REQUIREMENTS:
+- Use TypeScript with strict typing
+- Follow the component architecture from /docs/component-architecture.md
+- Implement proper loading and error states
+- Include accessibility attributes (WCAG 2.1 AA)
+- Use Tailwind CSS with our design system
+- Add proper JSDoc comments
+- Include prop validation with interfaces
+
+CONTEXT:
+- This is for a German guitar marketplace platform
+- Users value trust, security, and community
+- Component should work well on mobile devices
+- Consider guitar-specific terminology and features
+
+EXAMPLE STRUCTURE:
+```typescript
+interface [COMPONENT_NAME]Props {
+  // Define props here
+}
+
+const [COMPONENT_NAME]: React.FC<[COMPONENT_NAME]Props> = ({ ... }) => {
+  // Implementation
+};
+
+export default [COMPONENT_NAME];
+```
+
+PLEASE:
+- Reference existing components in /src/components for consistency
+- Use our established patterns for state management (Zustand/React Query)
+- Include proper error boundaries and fallbacks
+- Implement responsive design (mobile-first)
+```
+
+### 2. API Hook Generation Prompt
+```
+Create a custom React hook for [API_OPERATION] using our established patterns:
+
+REQUIREMENTS:
+- Use React Query (TanStack Query) for server state
+- Follow patterns from /docs/api-integration.md
+- Include proper TypeScript types from /types/database.ts
+- Implement error handling with our error handler
+- Add loading states and optimistic updates where appropriate
+- Use Supabase client with RLS policies
+
+CONTEXT:
+- Hook should work with our guitar marketplace data
+- Consider pagination for list operations
+- Include proper caching strategies (staleTime, gcTime)
+- Handle authentication states properly
+
+EXAMPLE PATTERN:
+```typescript
+export function use[OPERATION_NAME]() {
+  return useQuery({
+    queryKey: ['key'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('table')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+```
+
+PLEASE:
+- Include proper error types and handling
+- Add JSDoc documentation
+- Consider real-time subscriptions if applicable
+- Implement proper security checks
+```
+
+### 3. Database Operation Prompt
+```
+Create a database operation for [OPERATION_DESCRIPTION]:
+
+REQUIREMENTS:
+- Use the schema from /docs/database-schema.md
+- Implement proper RLS policies for security
+- Include data validation using Zod schemas
+- Add proper indexes for performance
+- Consider GDPR/DSGVO compliance for user data
+- Use TypeScript types from our database schema
+
+CONTEXT:
+- This is for our German guitar marketplace
+- Operations must be secure and performant
+- Consider multi-tenancy and user permissions
+- Include proper audit logging for sensitive operations
+
+EXAMPLE RLS POLICY:
+```sql
+CREATE POLICY "policy_name" ON table_name
+  FOR operation USING (condition);
+```
+
+PLEASE:
+- Reference existing policies for consistency
+- Include migration scripts if schema changes needed
+- Add proper constraints and validations
+- Consider performance implications
+```
+
+### 4. Business Logic Implementation Prompt
+```
+Implement business logic for [FEATURE_DESCRIPTION] in our guitar marketplace:
+
+REQUIREMENTS:
+- Follow German e-commerce regulations and GDPR
+- Implement proper validation and security measures
+- Use our established error handling patterns
+- Consider multi-language support (German primary)
+- Include proper logging for audit trails
+- Handle edge cases and error conditions
+
+CONTEXT:
+- This is for German guitar enthusiasts
+- Trust and security are paramount
+- Users are typically 30+ years old
+- Platform focuses on quality over quantity
+- Community features are important
+
+BUSINESS RULES:
+- Implement verification requirements for sellers
+- Add fraud detection and prevention
+- Consider pricing validation for suspicious listings
+- Include content moderation for user-generated content
+- Handle payment processing securely
+
+PLEASE:
+- Reference our business rules from /docs/cursor-rules.md
+- Include proper unit tests for critical logic
+- Add comprehensive documentation
+- Consider performance and scalability
+```
+
+### 5. Security Implementation Prompt
+```
+Implement security feature for [SECURITY_REQUIREMENT]:
+
+REQUIREMENTS:
+- Follow patterns from /docs/security-validation.md
+- Use Supabase Auth with proper RLS policies
+- Implement input validation with Zod schemas
+- Add rate limiting and abuse prevention
+- Include proper logging for security events
+- Consider GDPR compliance and data protection
+
+CONTEXT:
+- High-value items (guitars) require extra security
+- German users expect strong privacy protection
+- Platform must prevent fraud and scams
+- Multi-factor authentication for high-value transactions
+
+SECURITY CHECKLIST:
+- [ ] Input validation and sanitization
+- [ ] Authentication and authorization
+- [ ] Rate limiting implementation
+- [ ] Audit logging
+- [ ] Error handling (fail securely)
+- [ ] Data encryption for sensitive information
+
+PLEASE:
+- Use established security patterns
+- Include comprehensive testing
+- Add monitoring and alerting
+- Document security considerations
+```
+
+## Template Snippets for Cursor
+
+### Component Template
+```typescript
+// Template: React Component
+interface {{ComponentName}}Props {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+const {{ComponentName}}: React.FC<{{ComponentName}}Props> = ({
+  className,
+  children,
+}) => {
+  return (
+    <div className={cn("component-base", className)}>
+      {children}
+    </div>
+  );
+};
+
+{{ComponentName}}.displayName = '{{ComponentName}}';
+export default {{ComponentName}};
+```
+
+### API Hook Template
+```typescript
+// Template: API Hook
+export function use{{HookName}}({{params}}) {
+  return useQuery({
+    queryKey: ['{{queryKey}}', {{params}}],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('{{table}}')
+        .select('{{select}}')
+        {{filters}};
+      
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!{{enableCondition}},
+  });
+}
+```
+
+### Form Component Template
+```typescript
+// Template: Form Component
+interface {{FormName}}Props {
+  onSubmit: (data: {{DataType}}) => Promise<void>;
+  initialData?: Partial<{{DataType}}>;
+  loading?: boolean;
+}
+
+const {{FormName}}: React.FC<{{FormName}}Props> = ({
+  onSubmit,
+  initialData,
+  loading = false,
+}) => {
+  const form = useForm<{{DataType}}>({
+    defaultValues: initialData,
+    resolver: zodResolver({{validationSchema}}),
+  });
+
+  const handleSubmit = async (data: {{DataType}}) => {
+    try {
+      await onSubmit(data);
+      form.reset();
+    } catch (error) {
+      // Handle error
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {/* Form fields */}
+        <Button type="submit" loading={loading}>
+          Submit
+        </Button>
+      </form>
+    </Form>
+  );
+};
+```
+
+## Cursor Composer Workflows
+
+### 1. Feature Development Workflow
+```
+1. ANALYZE: "Analyze the requirements for [FEATURE] in our guitar marketplace"
+2. PLAN: "Create a development plan for implementing [FEATURE] with our tech stack"
+3. IMPLEMENT: "Generate the necessary components, hooks, and database changes"
+4. TEST: "Create unit tests and integration tests for [FEATURE]"
+5. DOCUMENT: "Update documentation and add JSDoc comments"
+```
+
+### 2. Bug Fix Workflow
+```
+1. REPRODUCE: "Help me reproduce and understand this bug: [BUG_DESCRIPTION]"
+2. ANALYZE: "Analyze the root cause considering our architecture and data flow"
+3. FIX: "Implement a fix following our established patterns and security requirements"
+4. TEST: "Create tests to prevent regression of this issue"
+5. VERIFY: "Review the fix for potential side effects or security implications"
+```
+
+### 3. Refactoring Workflow
+```
+1. ASSESS: "Analyze this code for improvement opportunities: [CODE_BLOCK]"
+2. PLAN: "Suggest refactoring approach maintaining backward compatibility"
+3. REFACTOR: "Implement the refactoring with proper TypeScript types"
+4. VALIDATE: "Ensure all existing functionality remains intact"
+5. OPTIMIZE: "Identify any performance improvements possible"
+```
+
+## Context-Aware Prompts
+
+### Guitar-Specific Context
+```
+When working on guitar-related features, remember:
+- Brands: Tier 1 (Fender, Gibson, Martin), Tier 2 (Ibanez, ESP), etc.
+- Types: Electric, Acoustic, Classical, Bass, Hollow-body, Semi-hollow
+- Conditions: Mint, Excellent, Very Good, Good, Fair, Poor, For Parts
+- Key specs: Body material, neck material, pickup configuration, year
+- German market: Focus on European brands and local preferences
+```
+
+### German Market Context
+```
+For German market features, consider:
+- Language: German primary, English secondary
+- Currency: EUR only
+- Payments: SEPA, PayPal, Klarna popular
+- Shipping: DHL, Hermes, DPD common carriers
+- Legal: GDPR compliance, German consumer protection laws
+- Culture: Quality over quantity, detailed descriptions expected
+```
+
+### Security Context
+```
+For security-related features, always:
+- Validate all inputs with Zod schemas
+- Use RLS policies for database access
+- Implement rate limiting for sensitive operations
+- Log security events for audit trails
+- Consider fraud patterns in guitar marketplace
+- Protect high-value transactions with additional verification
+```
+
+## AI-Optimized Comments
+
+Add these comments to your code for better AI understanding:
+
+```typescript
+// AI-CONTEXT: This component handles guitar listing display
+// BUSINESS-RULE: Only verified sellers can create listings
+// SECURITY: Input validation required for all user data
+// PERFORMANCE: Implement virtual scrolling for large lists
+// ACCESSIBILITY: Include ARIA labels and keyboard navigation
+// GERMAN-MARKET: Consider local preferences and regulations
+```
+
+## Cursor Settings Optimization
+
+Add to your Cursor settings for optimal AI assistance:
+
+```json
+{
+  "cursor.ai.model": "claude-3.5-sonnet",
+  "cursor.ai.temperature": 0.1,
+  "cursor.ai.maxTokens": 8192,
+  "cursor.ai.contextWindow": "large",
+  "cursor.ai.codeGeneration": {
+    "style": "consistent",
+    "patterns": "established",
+    "documentation": "comprehensive"
+  },
+  "cursor.ai.projectContext": {
+    "includeFiles": [
+      "docs/**/*.md",
+      "schemas/**/*.json", 
+      "types/**/*.ts",
+      ".cursorrules"
+    ],
+    "excludePatterns": [
+      "node_modules/**",
+      ".git/**",
+      "dist/**"
+    ]
+  }
+}
+```
+
+This setup ensures Cursor has maximum context about your project and can provide the most accurate and helpful assistance for your German guitar marketplace development.

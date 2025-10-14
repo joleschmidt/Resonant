@@ -1,0 +1,321 @@
+# Cursor AI Rules & Context
+
+## Project Identity
+```yaml
+project_name: "German Guitar Marketplace"
+project_type: "marketplace_platform" 
+domain: "musical_instruments"
+target_market: "germany"
+tech_stack: ["react", "typescript", "supabase", "nextjs", "tailwind"]
+ai_context_version: "2025-10-14"
+cursor_optimization_level: "advanced"
+```
+
+## Core Instructions for Cursor AI
+
+### CRITICAL CONTEXT
+This is a **German guitar, amp, and guitar accessories (pedals etc.) marketplace platform called Resonant** - a trusted alternative to eBay Kleinanzeigen and Reverb, specifically designed for German guitar enthusiasts. Every code suggestion must align with this business context.
+
+### PRIMARY OBJECTIVES
+1. **Trust & Security**: Implement robust verification, fraud prevention, and user safety
+2. **Guitar-Specific Features**: Advanced search, recommendations, and community features for guitarists
+3. **German Market Optimization**: DSGVO compliance, German payment methods, local shipping
+4. **Community Building**: Foster a community of guitar enthusiasts with social features
+
+## Development Rules (Ranked by Priority)
+
+### 🔴 CRITICAL RULES (Never Break)
+- **Type Safety**: Always use TypeScript with strict mode, no `any` types
+- **Security First**: Implement proper authentication, authorization, and input validation
+- **Database Security**: Always use RLS policies, never bypass Supabase security
+- **German Compliance**: DSGVO compliant data handling, proper consent management
+- **Performance**: Optimize for Core Web Vitals, implement proper caching strategies
+
+### 🟡 HIGH PRIORITY RULES
+- **Component Architecture**: Follow the defined component patterns in `/docs/component-architecture.md`
+- **State Management**: Use Zustand for client state, React Query for server state
+- **Error Handling**: Implement comprehensive error boundaries and user-friendly error messages
+- **Accessibility**: WCAG 2.1 AA compliance, proper ARIA labels, keyboard navigation
+- **Mobile First**: Design and develop mobile-first, progressive enhancement
+
+### 🟢 STANDARD RULES
+- **Code Style**: Use Prettier + ESLint, consistent naming conventions
+- **Testing**: Write tests for critical business logic and user flows
+- **Documentation**: Document complex business logic and API endpoints
+- **Git Workflow**: Conventional commits, feature branches, proper PR descriptions
+
+## Technical Architecture Patterns
+
+### File Structure (Enforced)
+```
+src/
+├── app/                    # Next.js App Router
+├── components/             # React Components
+│   ├── ui/                # shadcn/ui base components
+│   ├── features/          # Feature-specific components
+│   └── layout/            # Layout components
+├── lib/                   # Utility functions
+├── hooks/                 # Custom React hooks
+├── stores/                # Zustand stores
+├── types/                 # TypeScript definitions
+├── utils/                 # Helper functions
+└── styles/                # Global styles
+```
+
+### Component Patterns (Required)
+```typescript
+// ALWAYS use this pattern for new components
+interface ComponentProps {
+  // Props interface first
+}
+
+const Component: React.FC<ComponentProps> = ({ 
+  // Destructured props
+}) => {
+  // Hooks at top
+  // Event handlers
+  // Early returns for loading/error
+  // Main render
+};
+
+Component.displayName = 'Component';
+export default Component;
+```
+
+### API Patterns (Required)
+```typescript
+// ALWAYS use this pattern for API calls
+const useApiCall = () => {
+  return useQuery({
+    queryKey: ['key'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('table')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+```
+
+## Business Logic Context
+
+### User Types & Permissions
+```yaml
+user_types:
+  basic: 
+    - can_view_listings: true
+    - can_create_listings: false
+    - max_favorites: 20
+  verified:
+    - can_view_listings: true
+    - can_create_listings: true
+    - max_active_listings: 5
+    - can_message: true
+  premium:
+    - extends: verified
+    - max_active_listings: 20
+    - priority_support: true
+    - advanced_analytics: true
+  store:
+    - extends: premium
+    - max_active_listings: 100
+    - bulk_operations: true
+    - custom_branding: true
+```
+
+### Guitar Categories & Validation
+```yaml
+guitar_brands:
+  tier_1: ["Fender", "Gibson", "Martin", "Taylor"]
+  tier_2: ["Ibanez", "ESP", "Yamaha", "PRS"]
+  tier_3: ["Epiphone", "Squier", "Jackson", "Schecter"]
+  
+guitar_types:
+  electric: ["solid_body", "hollow_body", "semi_hollow"]
+  acoustic: ["steel_string", "classical", "twelve_string"]
+  bass: ["4_string", "5_string", "6_string"]
+  
+condition_hierarchy:
+  - "mint"        # Like new, no wear
+  - "excellent"   # Minor wear, fully functional
+  - "very_good"   # Light wear, no damage
+  - "good"        # Moderate wear, minor issues
+  - "fair"        # Significant wear, needs attention
+  - "poor"        # Major issues, parts guitar
+```
+
+### Pricing Rules
+```yaml
+pricing_validation:
+  min_price: 50
+  max_price: 50000
+  suspicious_low: 100    # Flag for review
+  suspicious_high: 20000 # Flag for review
+  currency: "EUR"
+  decimal_places: 2
+```
+
+## Security Context
+
+### Authentication Flow
+```yaml
+auth_requirements:
+  registration:
+    - email_verification: required
+    - phone_verification: optional_premium
+    - identity_verification: optional_stores
+  
+  verification_levels:
+    email_verified: basic_features
+    phone_verified: enhanced_features
+    identity_verified: full_features
+    fully_verified: premium_features
+```
+
+### Data Classification
+```yaml
+data_sensitivity:
+  public:
+    - listing_title
+    - listing_description
+    - listing_images
+    - public_profile_info
+  
+  protected:
+    - user_email
+    - user_phone
+    - message_content
+    - transaction_details
+  
+  restricted:
+    - payment_information
+    - identity_documents
+    - admin_notes
+    - security_logs
+```
+
+## AI Integration Context
+
+### Structured Data for MCP
+```yaml
+mcp_data_structure:
+  entities:
+    - users: 
+        schema: "/schemas/user.json"
+        access_level: "protected"
+    - listings:
+        schema: "/schemas/listing.json" 
+        access_level: "public"
+    - transactions:
+        schema: "/schemas/transaction.json"
+        access_level: "restricted"
+  
+  operations:
+    - create_listing
+    - search_listings
+    - analyze_trends
+    - detect_fraud
+    - moderate_content
+  
+  capabilities:
+    - natural_language_search
+    - recommendation_engine
+    - fraud_detection
+    - content_moderation
+```
+
+### API Readiness
+```yaml
+api_design:
+  versioning: "v1"
+  authentication: "jwt_bearer"
+  rate_limiting: true
+  documentation: "openapi_3.0"
+  
+  endpoints:
+    public:
+      - GET /api/v1/listings
+      - GET /api/v1/listings/{id}
+      - GET /api/v1/search
+    
+    authenticated:
+      - POST /api/v1/listings
+      - PUT /api/v1/listings/{id}
+      - POST /api/v1/messages
+    
+    admin:
+      - GET /api/v1/admin/analytics
+      - POST /api/v1/admin/moderate
+```
+
+## Performance Requirements
+
+### Core Web Vitals Targets
+```yaml
+performance_targets:
+  largest_contentful_paint: "< 2.5s"
+  first_input_delay: "< 100ms"
+  cumulative_layout_shift: "< 0.1"
+  time_to_interactive: "< 3.5s"
+```
+
+### Caching Strategy
+```yaml
+caching:
+  static_assets: "1 year"
+  api_responses: "5 minutes"
+  user_profiles: "30 minutes"
+  listing_data: "15 minutes"
+  search_results: "2 minutes"
+```
+
+## Code Generation Instructions
+
+### When Creating Components:
+1. Check `/docs/component-architecture.md` for patterns
+2. Implement proper TypeScript interfaces
+3. Add loading and error states
+4. Include accessibility attributes
+5. Add proper documentation comments
+
+### When Creating API Endpoints:
+1. Follow OpenAPI specification in `/docs/api-spec.yaml`
+2. Implement proper validation using Zod schemas
+3. Add rate limiting and authentication
+4. Include comprehensive error handling
+5. Add logging for security events
+
+### When Working with Database:
+1. Always use RLS policies
+2. Implement proper indexes for performance
+3. Use typed Supabase client
+4. Add proper migration scripts
+5. Include data validation at database level
+
+## Context Files to Reference
+
+Always reference these files when working on related features:
+- `/docs/database-schema.md` - Complete database structure
+- `/docs/component-architecture.md` - Component patterns
+- `/docs/api-integration.md` - API and hooks patterns
+- `/docs/state-management.md` - Zustand store patterns
+- `/docs/security-validation.md` - Security implementations
+- `/schemas/*.json` - JSON schemas for validation
+- `/types/database.ts` - TypeScript database types
+
+## Continuous Learning Instructions
+
+This file should be updated when:
+- New business requirements are identified
+- Technical patterns evolve
+- Performance optimizations are discovered
+- Security requirements change
+- User feedback indicates new priorities
+
+---
+
+**Note for Cursor AI**: This file contains the complete context for intelligent code assistance. Always consider the business domain (German guitar marketplace), technical constraints (TypeScript, Supabase), and user priorities (trust, security, community) when providing suggestions.

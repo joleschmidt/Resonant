@@ -1,0 +1,1002 @@
+# API Specification for External Access & MCP Integration
+
+## OpenAPI 3.0 Specification
+
+```yaml
+openapi: 3.0.3
+info:
+  title: German Guitar Marketplace API
+  description: |
+    RESTful API for the German Guitar Marketplace platform.
+    Designed for external integrations and AI-powered MCP access.
+  version: "1.0.0"
+  contact:
+    name: API Support
+    email: api@guitar-marketplace.de
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.guitar-marketplace.de/v1
+    description: Production server
+  - url: https://staging-api.guitar-marketplace.de/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # Public Endpoints (No Authentication Required)
+  /health:
+    get:
+      summary: Health Check
+      description: Check API health status
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /listings:
+    get:
+      summary: Get Guitar Listings
+      description: Retrieve paginated list of active guitar listings
+      tags: [Listings]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Brand'
+        - $ref: '#/components/parameters/GuitarType'
+        - $ref: '#/components/parameters/Condition'
+        - $ref: '#/components/parameters/PriceMin'
+        - $ref: '#/components/parameters/PriceMax'
+        - $ref: '#/components/parameters/Location'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: List of guitar listings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Create Guitar Listing
+      description: Create a new guitar listing (requires authentication)
+      tags: [Listings]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListingRequest'
+      responses:
+        '201':
+          description: Listing created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /listings/{listingId}:
+    get:
+      summary: Get Single Listing
+      description: Get detailed information about a specific listing
+      tags: [Listings]
+      security: []
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Listing details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedListingResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update Listing
+      description: Update an existing listing (owner only)
+      tags: [Listings]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateListingRequest'
+      responses:
+        '200':
+          description: Listing updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /search:
+    get:
+      summary: Advanced Search
+      description: Perform advanced search with AI-powered recommendations
+      tags: [Search]
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+            maxLength: 100
+        - name: semantic
+          in: query
+          description: Enable semantic search
+          schema:
+            type: boolean
+            default: false
+        - name: recommendations
+          in: query
+          description: Include AI recommendations
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Search results with optional recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /recommendations/{userId}:
+    get:
+      summary: Get User Recommendations
+      description: Get personalized recommendations for authenticated user
+      tags: [Recommendations]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          description: Type of recommendations
+          schema:
+            type: string
+            enum: [similar, trending, personalized]
+            default: personalized
+      responses:
+        '200':
+          description: Personalized recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+
+  # Analytics & Insights (For MCP Integration)
+  /analytics/trends:
+    get:
+      summary: Market Trends
+      description: Get current market trends and insights
+      tags: [Analytics]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [24h, 7d, 30d, 90d]
+            default: 30d
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [electric, acoustic, bass, classical]
+      responses:
+        '200':
+          description: Market trends data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendsResponse'
+
+  /analytics/price-insights:
+    get:
+      summary: Price Insights
+      description: Get price analysis and market insights
+      tags: [Analytics]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: brand
+          in: query
+          schema:
+            type: string
+        - name: model
+          in: query
+          schema:
+            type: string
+        - name: condition
+          in: query
+          schema:
+            $ref: '#/components/schemas/ConditionEnum'
+      responses:
+        '200':
+          description: Price insights
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceInsightsResponse'
+
+  # AI-Powered Endpoints (For MCP)
+  /ai/analyze-listing:
+    post:
+      summary: Analyze Listing
+      description: AI analysis of listing quality and suggestions
+      tags: [AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeListingRequest'
+      responses:
+        '200':
+          description: Listing analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingAnalysisResponse'
+
+  /ai/moderate-content:
+    post:
+      summary: Content Moderation
+      description: AI-powered content moderation
+      tags: [AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerateContentRequest'
+      responses:
+        '200':
+          description: Moderation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Supabase authentication
+    
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for external integrations
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    
+    Limit:
+      name: limit
+      in: query
+      description: Items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    
+    Search:
+      name: search
+      in: query
+      description: Search query
+      schema:
+        type: string
+        maxLength: 100
+    
+    Brand:
+      name: brand
+      in: query
+      description: Filter by guitar brand
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/GuitarBrand'
+    
+    GuitarType:
+      name: guitar_type
+      in: query
+      description: Filter by guitar type
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/GuitarType'
+    
+    Condition:
+      name: condition
+      in: query
+      description: Filter by condition
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ConditionEnum'
+    
+    PriceMin:
+      name: price_min
+      in: query
+      description: Minimum price in EUR
+      schema:
+        type: number
+        minimum: 0
+    
+    PriceMax:
+      name: price_max
+      in: query
+      description: Maximum price in EUR
+      schema:
+        type: number
+        minimum: 0
+    
+    Location:
+      name: location
+      in: query
+      description: Filter by location
+      schema:
+        type: string
+        maxLength: 100
+    
+    Sort:
+      name: sort
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [created_at_desc, created_at_asc, price_desc, price_asc, title_asc, distance_asc]
+        default: created_at_desc
+
+  schemas:
+    # Core Entities
+    GuitarListing:
+      type: object
+      required: [id, title, description, brand, guitar_type, condition, price, seller_id, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique listing identifier
+        title:
+          type: string
+          minLength: 10
+          maxLength: 100
+          description: Listing title
+        description:
+          type: string
+          minLength: 50
+          maxLength: 2000
+          description: Detailed description
+        brand:
+          $ref: '#/components/schemas/GuitarBrand'
+        model:
+          type: string
+          maxLength: 100
+          nullable: true
+        series:
+          type: string
+          maxLength: 100
+          nullable: true
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 2030
+          nullable: true
+        guitar_type:
+          $ref: '#/components/schemas/GuitarType'
+        condition:
+          $ref: '#/components/schemas/ConditionEnum'
+        price:
+          type: number
+          minimum: 50
+          maximum: 50000
+          multipleOf: 0.01
+        price_negotiable:
+          type: boolean
+          default: false
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 10
+        location_city:
+          type: string
+          maxLength: 100
+        location_state:
+          type: string
+          maxLength: 100
+          nullable: true
+        shipping_available:
+          type: boolean
+          default: true
+        shipping_cost:
+          type: number
+          minimum: 0
+          maximum: 500
+          nullable: true
+        pickup_available:
+          type: boolean
+          default: true
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+        seller_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ListingStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        views:
+          type: integer
+          minimum: 0
+        favorites_count:
+          type: integer
+          minimum: 0
+
+    GuitarBrand:
+      type: string
+      enum: 
+        - Fender
+        - Gibson
+        - Martin
+        - Taylor
+        - Ibanez
+        - ESP
+        - Yamaha
+        - PRS
+        - Rickenbacker
+        - Gretsch
+        - Epiphone
+        - Squier
+        - Jackson
+        - Schecter
+        - Washburn
+        - Dean
+        - BC Rich
+        - Charvel
+        - Kramer
+        - Other
+
+    GuitarType:
+      type: string
+      enum:
+        - electric
+        - acoustic
+        - classical
+        - bass
+        - hollow_body
+        - semi_hollow
+        - twelve_string
+        - baritone
+        - travel
+        - resonator
+
+    ConditionEnum:
+      type: string
+      enum:
+        - mint
+        - excellent
+        - very_good
+        - good
+        - fair
+        - poor
+        - for_parts
+
+    ListingStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - pending
+        - sold
+        - expired
+        - removed
+        - reported
+
+    # API Responses
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+
+    ListingsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuitarListing'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+        total_count:
+          type: integer
+
+    ListingResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/GuitarListing'
+
+    DetailedListingResponse:
+      allOf:
+        - $ref: '#/components/schemas/ListingResponse'
+        - type: object
+          properties:
+            seller:
+              $ref: '#/components/schemas/PublicProfile'
+            similar_listings:
+              type: array
+              items:
+                $ref: '#/components/schemas/GuitarListing'
+              maxItems: 5
+
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuitarListing'
+        query:
+          type: string
+        filters_applied:
+          type: object
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuitarListing'
+          nullable: true
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    RecommendationsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuitarListing'
+        recommendation_type:
+          type: string
+          enum: [similar, trending, personalized]
+        confidence_score:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    TrendsResponse:
+      type: object
+      properties:
+        timeframe:
+          type: string
+        trending_brands:
+          type: array
+          items:
+            type: object
+            properties:
+              brand:
+                type: string
+              count:
+                type: integer
+              growth_rate:
+                type: number
+        average_prices:
+          type: object
+          additionalProperties:
+            type: number
+        market_insights:
+          type: array
+          items:
+            type: string
+
+    PriceInsightsResponse:
+      type: object
+      properties:
+        market_value:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+            average:
+              type: number
+            median:
+              type: number
+        price_trend:
+          type: string
+          enum: [increasing, decreasing, stable]
+        similar_listings:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuitarListing'
+        recommendations:
+          type: object
+          properties:
+            suggested_price:
+              type: number
+            confidence:
+              type: number
+
+    ListingAnalysisResponse:
+      type: object
+      properties:
+        quality_score:
+          type: number
+          minimum: 0
+          maximum: 100
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+                enum: [images, description, pricing, title]
+              message:
+                type: string
+              priority:
+                type: string
+                enum: [low, medium, high]
+        market_position:
+          type: string
+          enum: [underpriced, fairly_priced, overpriced]
+        estimated_interest:
+          type: string
+          enum: [low, medium, high]
+
+    ModerationResponse:
+      type: object
+      properties:
+        flagged:
+          type: boolean
+        categories:
+          type: object
+          properties:
+            harassment:
+              type: boolean
+            hate:
+              type: boolean
+            sexual:
+              type: boolean
+            violence:
+              type: boolean
+            spam:
+              type: boolean
+        confidence_scores:
+          type: object
+          additionalProperties:
+            type: number
+        action_required:
+          type: string
+          enum: [none, review, remove]
+
+    # Request Schemas
+    CreateListingRequest:
+      type: object
+      required: [title, description, brand, guitar_type, condition, price, location_city, images]
+      properties:
+        title:
+          type: string
+          minLength: 10
+          maxLength: 100
+        description:
+          type: string
+          minLength: 50
+          maxLength: 2000
+        brand:
+          $ref: '#/components/schemas/GuitarBrand'
+        model:
+          type: string
+          maxLength: 100
+        year:
+          type: integer
+          minimum: 1900
+          maximum: 2030
+        guitar_type:
+          $ref: '#/components/schemas/GuitarType'
+        condition:
+          $ref: '#/components/schemas/ConditionEnum'
+        price:
+          type: number
+          minimum: 50
+          maximum: 50000
+        price_negotiable:
+          type: boolean
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          maxItems: 10
+        location_city:
+          type: string
+          maxLength: 100
+        location_state:
+          type: string
+          maxLength: 100
+        shipping_available:
+          type: boolean
+        shipping_cost:
+          type: number
+          minimum: 0
+        pickup_available:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateListingRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateListingRequest'
+        - type: object
+          properties:
+            status:
+              $ref: '#/components/schemas/ListingStatus'
+
+    AnalyzeListingRequest:
+      type: object
+      required: [listing_data]
+      properties:
+        listing_data:
+          $ref: '#/components/schemas/CreateListingRequest'
+        include_market_analysis:
+          type: boolean
+          default: true
+        include_suggestions:
+          type: boolean
+          default: true
+
+    ModerateContentRequest:
+      type: object
+      required: [content, content_type]
+      properties:
+        content:
+          type: string
+        content_type:
+          type: string
+          enum: [listing_title, listing_description, message, review]
+        user_id:
+          type: string
+          format: uuid
+
+    # Utility Schemas
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_pages:
+          type: integer
+        total_count:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+
+    PublicProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        verification_status:
+          type: string
+          enum: [unverified, email_verified, phone_verified, identity_verified, fully_verified]
+        seller_rating:
+          type: number
+          minimum: 0
+          maximum: 5
+        total_sales:
+          type: integer
+        location:
+          type: string
+        member_since:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  validation_errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                        message:
+                          type: string
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+# Rate Limiting
+x-rate-limit:
+  public_endpoints: "100 requests per minute"
+  authenticated_endpoints: "200 requests per minute"
+  ai_endpoints: "50 requests per minute"
+
+# API Keys for External Access
+x-api-access:
+  public_data: "No API key required"
+  user_data: "JWT authentication required"
+  analytics_data: "API key required"
+  ai_features: "Premium API key required"
+```
+
+## MCP Integration Schema
+
+This API specification is designed to be consumed by MCP servers, enabling AI systems to:
+
+1. **Access Market Data**: Get listings, trends, and analytics
+2. **Perform Analysis**: Use AI endpoints for content analysis and moderation
+3. **Generate Insights**: Access recommendation and pricing data
+4. **Integrate Seamlessly**: Standard REST API with OpenAPI documentation
+
+## External Platform Integration
+
+External platforms can integrate using:
+- **REST API**: Standard HTTP endpoints
+- **Webhook Events**: Real-time notifications
+- **GraphQL**: Advanced querying capabilities (future)
+- **SDK Libraries**: JavaScript, Python, etc. (future)
+
+This specification ensures both human developers and AI systems can effectively interact with your platform.
