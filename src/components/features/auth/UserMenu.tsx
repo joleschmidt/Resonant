@@ -91,11 +91,18 @@ export function UserMenu() {
             reset();
             // client signout to trigger listeners
             const supabase = createClient();
-            await supabase.auth.signOut();
-            // clear server cookies
-            fetch('/api/auth/signout', { method: 'POST' }).catch(() => { });
-            // navigate
+            await supabase.auth.signOut({ scope: 'global' });
+            // clear server cookies and revoke refresh token on server
+            try {
+              await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
+            } catch { }
+            // navigate and ensure revalidation
             router.replace('/');
+            router.refresh();
+            // final safeguard in case of caching/state race
+            setTimeout(() => {
+              try { window.location.reload(); } catch { }
+            }, 50);
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />

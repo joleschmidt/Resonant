@@ -8,6 +8,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import type { Database } from '@/types/database';
 
 export async function updateSession(request: NextRequest) {
+  // Skip middleware auth refresh for API routes to avoid racing sign-out
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.next({ request });
+  }
   let supabaseResponse = NextResponse.next({
     request,
   });
