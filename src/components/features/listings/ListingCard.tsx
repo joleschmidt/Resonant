@@ -17,7 +17,7 @@ import {
     Euro,
     Star
 } from 'lucide-react';
-import { generateThumbnailUrl, generateMediumUrl } from '@/lib/imagekit';
+// Removed ImageKit import - using direct Supabase Storage URLs
 import type { ListingWithDetails } from '@/types/listings';
 import { CONDITIONS, LISTING_CATEGORIES } from '@/utils/constants';
 import Link from 'next/link';
@@ -53,7 +53,7 @@ export function ListingCard({
                         {/* Image */}
                         <div className={isGrid ? 'relative' : 'w-32 h-32 flex-shrink-0'}>
                             <img
-                                src={mainImage ? generateThumbnailUrl(mainImage, isGrid ? 300 : 128) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
+                                src={mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                 alt={listing.title}
                                 className={`
                   object-cover bg-muted
@@ -63,9 +63,6 @@ export function ListingCard({
 
                             {/* Overlay badges */}
                             <div className="absolute top-2 left-2 flex flex-col gap-1">
-                                <Badge variant="secondary" className="text-xs">
-                                    {categoryLabel}
-                                </Badge>
                                 <Badge
                                     variant={getConditionVariant(listing.condition)}
                                     className="text-xs"
