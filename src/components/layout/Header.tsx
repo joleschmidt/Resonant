@@ -42,6 +42,11 @@ export function Header() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              <Link href="/listings/create">
+                <Button size="sm">
+                  Anzeige erstellen
+                </Button>
+              </Link>
               <Link href="/profile">
                 <Button variant="ghost" size="sm">
                   Profil
