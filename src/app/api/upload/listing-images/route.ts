@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
-            .from('listing_images')
+            .from('listing-images')
             .upload(path, buffer, {
                 contentType: file.type,
                 cacheControl: '3600',
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         // Get public URL
         const {
             data: { publicUrl },
-        } = supabase.storage.from('listing_images').getPublicUrl(path);
+        } = supabase.storage.from('listing-images').getPublicUrl(path);
 
         if (!publicUrl) {
             return NextResponse.json(
