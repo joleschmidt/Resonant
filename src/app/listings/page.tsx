@@ -136,32 +136,17 @@ export default function ListingsPage() {
                             <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
                         </TabsList>
                     </Tabs>
-                    <div className="flex items-center gap-2">
-                        {/* Desktop Filter toggle aligned with tabs */}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowFilters((v) => !v)}
-                            className="hidden lg:flex text-muted-foreground hover:text-foreground"
-                            aria-expanded={showFilters}
-                            aria-controls="desktop-filters"
-                        >
-                            <SlidersHorizontal className="h-4 w-4 mr-1" />
-                            Filter
-                        </Button>
-                        {/* Mobile combined controls toggle */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setShowMobileControls((v) => !v)}
-                            aria-expanded={showMobileControls}
-                            aria-controls="mobile-controls"
-                            className="lg:hidden ml-2"
-                            aria-label="Suche und Filter umschalten"
-                        >
-                            <SlidersHorizontal className="h-5 w-5" />
-                        </Button>
-                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowMobileControls((v) => !v)}
+                        aria-expanded={showMobileControls}
+                        aria-controls="mobile-controls"
+                        className="lg:hidden ml-2"
+                        aria-label="Suche und Filter umschalten"
+                    >
+                        <SlidersHorizontal className="h-5 w-5" />
+                    </Button>
                 </div>
             </div>
 
@@ -281,73 +266,6 @@ export default function ListingsPage() {
                 </Card>
             )}
 
-            {/* Desktop Filters Panel directly under categories */}
-            {showFilters && (
-                <Card id="desktop-filters" className="mb-6 hidden lg:block">
-                    <CardContent className="p-4 sm:p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {/* Price Range */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Preis</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="number"
-                                        placeholder="Min"
-                                        value={filters.price_min || ''}
-                                        onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                    />
-                                    <Input
-                                        type="number"
-                                        placeholder="Max"
-                                        value={filters.price_max || ''}
-                                        onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Condition */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Zustand</label>
-                                <div className="flex flex-wrap gap-1">
-                                    {Object.values(CONDITIONS).map((condition) => (
-                                        <Badge
-                                            key={condition}
-                                            variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
-                                            className="cursor-pointer"
-                                            onClick={() => {
-                                                const currentConditions = filters.condition || [];
-                                                const newConditions = currentConditions.includes(condition)
-                                                    ? currentConditions.filter((c: string) => c !== condition)
-                                                    : [...currentConditions, condition];
-                                                handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
-                                            }}
-                                        >
-                                            {getConditionLabel(condition)}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Location */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Ort</label>
-                                <Input
-                                    placeholder="Stadt"
-                                    value={filters.location_city || ''}
-                                    onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Filter Actions */}
-                        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                            <Button onClick={applyFilters}>Filter anwenden</Button>
-                            <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
             {/* Results */}
             {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -374,13 +292,90 @@ export default function ListingsPage() {
                 </Card>
             ) : (
                 <>
-                    {/* Results Header (counts + view toggle only) */}
+                    {/* Results Header */}
                     <div className="flex items-center justify-between mb-6">
                         <p className="text-sm text-muted-foreground">
                             {pagination?.total_count} Anzeigen gefunden
                         </p>
-                        <div className="flex items-center gap-2" />
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="hidden lg:flex text-muted-foreground hover:text-foreground"
+                            >
+                                <SlidersHorizontal className="h-4 w-4 mr-1" />
+                                Filter
+                            </Button>
+                        </div>
                     </div>
+
+                    {/* Filters Panel (desktop only, directly under header button) */}
+                    {showFilters && (
+                        <Card className="mb-6 hidden lg:block">
+                            <CardContent className="p-4 sm:p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {/* Price Range */}
+                                    <div>
+                                        <label className="text-sm font-medium mb-2 block">Preis</label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="number"
+                                                placeholder="Min"
+                                                value={filters.price_min || ''}
+                                                onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                            />
+                                            <Input
+                                                type="number"
+                                                placeholder="Max"
+                                                value={filters.price_max || ''}
+                                                onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Condition */}
+                                    <div>
+                                        <label className="text-sm font-medium mb-2 block">Zustand</label>
+                                        <div className="flex flex-wrap gap-1">
+                                            {Object.values(CONDITIONS).map((condition) => (
+                                                <Badge
+                                                    key={condition}
+                                                    variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
+                                                    className="cursor-pointer"
+                                                    onClick={() => {
+                                                        const currentConditions = filters.condition || [];
+                                                        const newConditions = currentConditions.includes(condition)
+                                                            ? currentConditions.filter((c: string) => c !== condition)
+                                                            : [...currentConditions, condition];
+                                                        handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
+                                                    }}
+                                                >
+                                                    {getConditionLabel(condition)}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Location */}
+                                    <div>
+                                        <label className="text-sm font-medium mb-2 block">Ort</label>
+                                        <Input
+                                            placeholder="Stadt"
+                                            value={filters.location_city || ''}
+                                            onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Filter Actions */}
+                                <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                                    <Button onClick={applyFilters}>Filter anwenden</Button>
+                                    <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Listings Grid */}
                     <div className={`

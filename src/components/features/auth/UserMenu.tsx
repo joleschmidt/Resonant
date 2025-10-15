@@ -27,7 +27,7 @@ export function UserMenu() {
   const reset = useAuthStore((s) => s.reset);
   const router = useRouter();
 
-  // Show avatar image when available (profile or auth provider metadata)
+  // Fallbacks wenn Profil (noch) nicht geladen ist
   const displayName = profile?.username || user?.email?.split('@')[0] || 'User';
   const displayEmail = profile?.email || user?.email || '';
   const avatarUrl = profile?.avatar_url || (user as any)?.user_metadata?.avatar_url || undefined;
