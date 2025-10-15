@@ -10,6 +10,14 @@ import { AuthButton } from '@/components/features/auth/AuthButton';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { UserMenu } from '@/components/features/auth/UserMenu';
+import { Menu } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 export function Header() {
   const user = useAuthStore((state) => state.user);
@@ -42,20 +50,74 @@ export function Header() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              <Link href="/listings/create">
-                <Button size="sm">
-                  Anzeige erstellen
-                </Button>
-              </Link>
-              <Link href="/profile">
-                <Button variant="ghost" size="sm">
-                  Profil
-                </Button>
-              </Link>
-              <UserMenu />
+              <div className="hidden md:flex items-center gap-4">
+                <Link href="/listings/create">
+                  <Button size="sm">
+                    Anzeige erstellen
+                  </Button>
+                </Link>
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm">
+                    Profil
+                  </Button>
+                </Link>
+                <UserMenu />
+              </div>
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Menü öffnen">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href="/listings">Anzeigen</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/about">Über uns</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/listings/create">Anzeige erstellen</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profil</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           ) : (
-            <AuthButton />
+            <>
+              <div className="hidden md:flex">
+                <AuthButton />
+              </div>
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Menü öffnen">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href="/listings">Anzeigen</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/about">Über uns</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/auth/login">Anmelden</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/auth/signup">Registrieren</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </>
           )}
         </div>
       </div>
