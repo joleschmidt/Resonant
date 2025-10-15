@@ -34,3 +34,17 @@ export async function createClient() {
   );
 }
 
+// Public helpers
+export async function getUserByUsername(username: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(
+      `id, username, username_finalized, full_name, email, avatar_url, bio, location, verification_status, account_type, seller_rating, buyer_rating, total_sales, total_purchases, created_at, updated_at, last_active_at`
+    )
+    .eq('username', username)
+    .single();
+  if (error) return { user: null, error } as const;
+  return { user: data, error: null } as const;
+}
+

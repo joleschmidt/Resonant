@@ -4,13 +4,15 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { ProfileCard } from '@/components/features/profile/ProfileCard';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import type { Profile } from '@/types';
 import { Suspense } from 'react';
 import { InlineUsernameSetter } from '@/components/features/profile/InlineUsernameSetter';
+import { UserProfileHeader } from '@/components/features/profile/UserProfileHeader';
+import { UserStatsStrip } from '@/components/features/profile/UserStatsStrip';
+import { UserAbout } from '@/components/features/profile/UserAbout';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,19 +48,26 @@ export default async function ProfilePage() {
     }
 
     return (
-        <div className="container py-12">
-            <div className="mx-auto max-w-4xl space-y-6">
+        <div className="container py-8">
+            <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold">Mein Profil</h1>
                     <Button asChild>
                         <Link href="/profile/edit">
-                            <Edit className="mr-2 h-4 w-4" />
-                            Bearbeiten
+                            <Edit className="mr-2 h-4 w-4" />Bearbeiten
                         </Link>
                     </Button>
                 </div>
 
-                <ProfileCard profile={profile} showStats />
+                <UserProfileHeader user={profile as Profile} isSelf editHref="/profile/edit" />
+
+                <UserStatsStrip
+                    rating={profile.seller_rating}
+                    sales={profile.total_sales}
+                    purchases={profile.total_purchases}
+                />
+
+                <UserAbout bio={profile.bio} />
 
                 {!profile.username_finalized && (
                     <div className="rounded-lg border p-6">
