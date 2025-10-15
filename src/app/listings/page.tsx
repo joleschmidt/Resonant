@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ListingCard } from '@/components/features/listings/ListingCard';
 import { LISTING_CATEGORIES, CONDITIONS, GUITAR_TYPES, AMP_TYPES, EFFECT_TYPES } from '@/utils/constants';
-import type { ListingWithDetails, ListingFiltersData } from '@/types/listings';
+import type { ListingWithDetails } from '@/types/listings';
 
 interface ListingsResponse {
     data: ListingWithDetails[];
@@ -44,7 +44,14 @@ export default function ListingsPage() {
     const [pagination, setPagination] = useState<ListingsResponse['pagination'] | null>(null);
 
     // Filters state
-    const [filters, setFilters] = useState<ListingFiltersData>({
+    const [filters, setFilters] = useState<{
+        category?: string;
+        search?: string;
+        price_min?: number;
+        price_max?: number;
+        condition?: string[];
+        location_city?: string;
+    }>({
         category: searchParams.get('category') as any || undefined,
         search: searchParams.get('search') || undefined,
         price_min: searchParams.get('price_min') ? parseFloat(searchParams.get('price_min')!) : undefined,
@@ -98,12 +105,12 @@ export default function ListingsPage() {
     // Handle search
     const handleSearch = (query: string) => {
         setSearchQuery(query);
-        setFilters(prev => ({ ...prev, search: query || undefined }));
+        setFilters((prev: any) => ({ ...prev, search: query || undefined }));
     };
 
     // Handle filter changes
-    const handleFilterChange = (key: keyof ListingFiltersData, value: any) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
+    const handleFilterChange = (key: string, value: any) => {
+        setFilters((prev: any) => ({ ...prev, [key]: value }));
     };
 
     // Apply filters
@@ -125,79 +132,76 @@ export default function ListingsPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            {/* Header */}
+            {/* Category Selection */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Gitarren, Amps & Effekte</h1>
-                <p className="text-muted-foreground">
-                    Entdecke {pagination?.total_count || 0} Anzeigen von Musikern für Musiker
+                <Tabs value={filters.category || 'all'} onValueChange={(value) =>
+                    handleFilterChange('category', value === 'all' ? undefined : value)
+                }>
+                    <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+                        <TabsTrigger value="all">Alle</TabsTrigger>
+                        <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
+                        <TabsTrigger value={LISTING_CATEGORIES.AMPS}>Amps</TabsTrigger>
+                        <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <p className="text-muted-foreground mt-4">
+                    {pagination?.total_count || 0} Anzeigen gefunden
                 </p>
             </div>
 
-            {/* Search and Filters */}
-            <Card className="mb-6">
-                <CardContent className="p-6">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search */}
-                        <div className="flex-1">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Suche nach Marke, Modell, Typ..."
-                                    value={searchQuery}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Filter Toggle */}
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="lg:hidden"
-                        >
-                            <Filter className="h-4 w-4 mr-2" />
-                            Filter
-                        </Button>
-
-                        {/* View Mode Toggle */}
-                        <div className="flex gap-2">
-                            <Button
-                                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('grid')}
-                            >
-                                <Grid3X3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant={viewMode === 'list' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setViewMode('list')}
-                            >
-                                <List className="h-4 w-4" />
-                            </Button>
+            {/* Compact Search and Controls */}
+            <div className="mb-4">
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+                    {/* Search */}
+                    <div className="flex-1">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Suche nach Marke, Modell, Typ..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="pl-10 h-9 text-sm"
+                            />
                         </div>
                     </div>
 
-                    {/* Filters Panel */}
-                    {showFilters && (
-                        <div className="mt-6 pt-6 border-t">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {/* Category */}
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Kategorie</label>
-                                    <Tabs value={filters.category || 'all'} onValueChange={(value) =>
-                                        handleFilterChange('category', value === 'all' ? undefined : value)
-                                    }>
-                                        <TabsList className="grid w-full grid-cols-4">
-                                            <TabsTrigger value="all">Alle</TabsTrigger>
-                                            <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
-                                            <TabsTrigger value={LISTING_CATEGORIES.AMPS}>Amps</TabsTrigger>
-                                            <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
-                                        </TabsList>
-                                    </Tabs>
-                                </div>
+                    {/* Filter Toggle - Less prominent */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="lg:hidden text-muted-foreground hover:text-foreground"
+                    >
+                        <Filter className="h-4 w-4 mr-1" />
+                        Filter
+                    </Button>
 
+                    {/* View Mode Toggle */}
+                    <div className="flex gap-2">
+                        <Button
+                            variant={viewMode === 'grid' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('grid')}
+                        >
+                            <Grid3X3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant={viewMode === 'list' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+                <Card className="mb-6">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {/* Price Range */}
                                 <div>
                                     <label className="text-sm font-medium mb-2 block">Preis</label>
@@ -229,7 +233,7 @@ export default function ListingsPage() {
                                                 onClick={() => {
                                                     const currentConditions = filters.condition || [];
                                                     const newConditions = currentConditions.includes(condition)
-                                                        ? currentConditions.filter(c => c !== condition)
+                                                        ? currentConditions.filter((c: string) => c !== condition)
                                                         : [...currentConditions, condition];
                                                     handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
                                                 }}
@@ -261,9 +265,14 @@ export default function ListingsPage() {
                                 </Button>
                             </div>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+                        {/* Filter Actions */}
+                        <div className="flex gap-2 mt-4">
+                            <Button onClick={applyFilters}>Filter anwenden</Button>
+                            <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Results */}
             {loading ? (
@@ -298,12 +307,12 @@ export default function ListingsPage() {
                         </p>
                         <div className="flex items-center gap-2">
                             <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className="hidden lg:flex"
+                                className="hidden lg:flex text-muted-foreground hover:text-foreground"
                             >
-                                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                                <SlidersHorizontal className="h-4 w-4 mr-1" />
                                 Filter
                             </Button>
                         </div>

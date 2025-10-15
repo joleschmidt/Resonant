@@ -116,6 +116,7 @@ export default function ListingDetailPage() {
     const [showBuyNow, setShowBuyNow] = useState(false);
     const [offerAmount, setOfferAmount] = useState('');
     const [offerMessage, setOfferMessage] = useState('');
+    const [showFullDescription, setShowFullDescription] = useState(false);
     const router = useRouter();
 
 
@@ -266,8 +267,8 @@ export default function ListingDetailPage() {
                     {/* Images */}
                     <div className="h-full flex flex-col gap-3 pb-2 max-h-[60vh] sm:max-h-[70vh] lg:max-h-[84.65vh]">
                         {/* Main Image with mobile overlay controls */}
-                        <div className="relative">
-                            <button className="flex-1 min-h-0 w-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
+                        <div className="relative flex-1 min-h-0">
+                            <button className="block w-full h-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
                                 <img
                                     src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                     alt={listing.title}
@@ -517,15 +518,6 @@ export default function ListingDetailPage() {
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                {listing.profiles.seller_rating && listing.profiles.seller_rating !== 0 && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                        <span>{listing.profiles.seller_rating.toFixed(1)}</span>
-                                                    </div>
-                                                )}
-                                                {listing.profiles.total_sales && listing.profiles.total_sales !== 0 && (
-                                                    <span>{listing.profiles.total_sales} Verkäufe</span>
-                                                )}
                                                 <span>Mitglied seit {new Date(listing.profiles.created_at).getFullYear()}</span>
                                             </div>
                                         </div>
@@ -598,8 +590,8 @@ export default function ListingDetailPage() {
                 {lightboxOpen && (
                     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
                         <div className="flex items-center justify-between p-4 text-white">
-                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                             <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
+                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                         </div>
                         <div className="relative flex-1 flex items-center justify-center select-none overflow-hidden">
                             <img
@@ -631,7 +623,20 @@ export default function ListingDetailPage() {
                         <CardContent className="p-6">
                             <h2 className="text-xl font-semibold mb-4">Beschreibung</h2>
                             <div className="prose max-w-none">
-                                <p className="whitespace-pre-wrap">{listing.description}</p>
+                                {listing.description && listing.description.length > 600 ? (
+                                    <>
+                                        <p className={`whitespace-pre-wrap ${showFullDescription ? '' : 'line-clamp-[12]'}`}>
+                                            {listing.description}
+                                        </p>
+                                        <div className="mt-3">
+                                            <Button variant="ghost" size="sm" onClick={() => setShowFullDescription((v) => !v)}>
+                                                {showFullDescription ? 'Weniger anzeigen' : 'Weiter lesen'}
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="whitespace-pre-wrap">{listing.description}</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
