@@ -110,6 +110,7 @@ export default function ListingDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
     const [showPriceOffer, setShowPriceOffer] = useState(false);
     const [showBuyNow, setShowBuyNow] = useState(false);
     const [offerAmount, setOfferAmount] = useState('');
@@ -219,7 +220,11 @@ export default function ListingDetailPage() {
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8">
                 {/* Back Button */}
-                <div className="mb-6">
+
+
+
+                {/* Breadcrumb */}
+                <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -229,10 +234,6 @@ export default function ListingDetailPage() {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Zurück
                     </Button>
-                </div>
-
-                {/* Breadcrumb */}
-                <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
                     <a
                         href="/listings"
                         className="hover:text-foreground transition-colors"
@@ -256,13 +257,13 @@ export default function ListingDetailPage() {
                     {/* Images */}
                     <div className="space-y-4">
                         {/* Main Image */}
-                        <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        <button className="aspect-square rounded-lg overflow-hidden bg-muted w-full" onClick={() => setLightboxOpen(true)}>
                             <img
                                 src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                 alt={listing.title}
                                 className="w-full h-full object-cover"
                             />
-                        </div>
+                        </button>
 
                         {/* Thumbnail Images */}
                         {listing.images && listing.images.length > 1 && (
@@ -530,6 +531,21 @@ export default function ListingDetailPage() {
                     </div>
                 </div>
 
+                {/* Lightbox */}
+                {lightboxOpen && (
+                    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+                        <div className="flex items-center justify-between p-4 text-white">
+                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
+                            <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
+                        </div>
+                        <div className="flex-1 flex items-center justify-center select-none">
+                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i>0? i-1 : (listing.images?.length||1)-1))}>‹</button>
+                            <img src={listing.images?.[currentImageIndex] || mainImage!} alt={listing.title} className="max-w-[90vw] max-height-[80vh] object-contain" />
+                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length||1)-1 ? i+1 : 0))}>›</button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Description */}
                 <div className="mt-8">
                     <Card>
@@ -612,7 +628,7 @@ export default function ListingDetailPage() {
                                             <div className="space-y-2">
                                                 {listing.details.custom_fields.map((field: { key: string; value: string }, index: number) => (
                                                     <div key={index} className="flex justify-between">
-                                                        <span className="font-medium">{field.key}</span>
+                                                        <span className="font-medium">{field.key}:</span>
                                                         <span className="text-muted-foreground">{field.value}</span>
                                                     </div>
                                                 ))}

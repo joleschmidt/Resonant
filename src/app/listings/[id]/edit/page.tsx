@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, X, Plus } from 'lucide-react';
+import { ArrowLeft, Save, X, Plus, GripVertical, Trash2 } from 'lucide-react';
 
 interface ListingDetails {
     id: string;
@@ -36,6 +36,25 @@ export default function EditListingPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [localImages, setLocalImages] = useState<string[]>([]);
+    const [newFiles, setNewFiles] = useState<File[]>([]);
+
+    // Base listing form
+    const [base, setBase] = useState({
+        title: '',
+        description: '',
+        price: '',
+        original_price: '',
+        price_negotiable: false,
+        condition: 'excellent',
+        condition_notes: '',
+        location_city: '',
+        location_state: '',
+        location_postal_code: '',
+        shipping_available: false,
+        shipping_cost: '',
+        pickup_available: true
+    });
 
     // Form data for technical details
     const [formData, setFormData] = useState({
@@ -70,6 +89,23 @@ export default function EditListingPage() {
 
                 const data = await response.json();
                 setListing(data.data);
+                setLocalImages(data.data.images || []);
+                // fill base
+                setBase({
+                    title: data.data.title || '',
+                    description: data.data.description || '',
+                    price: String(data.data.price || ''),
+                    original_price: String(data.data.original_price || ''),
+                    price_negotiable: !!data.data.price_negotiable,
+                    condition: data.data.condition || 'excellent',
+                    condition_notes: data.data.condition_notes || '',
+                    location_city: data.data.location_city || '',
+                    location_state: data.data.location_state || '',
+                    location_postal_code: data.data.location_postal_code || '',
+                    shipping_available: !!data.data.shipping_available,
+                    shipping_cost: String(data.data.shipping_cost || ''),
+                    pickup_available: !!data.data.pickup_available
+                });
 
                 // Pre-fill form with existing details
                 if (data.data.details) {
@@ -111,7 +147,20 @@ export default function EditListingPage() {
 
         setSaving(true);
         try {
-            console.log('Sending data:', { details: formData });
+            console.log('Sending data:', { base, details: formData });
+
+            // 1) Upload new files to storage and collect URLs
+            const uploadedUrls: string[] = [];
+            for (const file of newFiles) {
+                const fd = new FormData();
+                fd.append('file', file);
+                const res = await fetch('/api/upload/listing-images', { method: 'POST', body: fd });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Bild-Upload fehlgeschlagen');
+                uploadedUrls.push(json.url);
+            }
+
+            const finalImages = [...localImages, ...uploadedUrls];
 
             const response = await fetch(`/api/listings/${params.id}`, {
                 method: 'PUT',
@@ -119,7 +168,14 @@ export default function EditListingPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    details: formData
+                    base: {
+                        ...base,
+                        price: base.price ? Number(base.price) : null,
+                        original_price: base.original_price ? Number(base.original_price) : null,
+                        shipping_cost: base.shipping_cost ? Number(base.shipping_cost) : null
+                    },
+                    details: formData,
+                    images: finalImages
                 }),
             });
 
@@ -137,6 +193,29 @@ export default function EditListingPage() {
         } finally {
             setSaving(false);
         }
+    };
+
+    // Image management
+    const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files ? Array.from(e.target.files) : [];
+        setNewFiles(prev => [...prev, ...files]);
+    };
+
+    const moveImage = (from: number, to: number) => {
+        setLocalImages(prev => {
+            const copy = [...prev];
+            const [moved] = copy.splice(from, 1);
+            copy.splice(to, 0, moved);
+            return copy;
+        });
+    };
+
+    const removeExistingImage = (index: number) => {
+        setLocalImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeNewFile = (index: number) => {
+        setNewFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     if (loading) {
@@ -205,6 +284,137 @@ export default function EditListingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Base Listing Fields */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Grunddaten</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="title">Titel</Label>
+                                <Input id="title" value={base.title} onChange={e => setBase(prev => ({ ...prev, title: e.target.value }))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="description">Beschreibung</Label>
+                                <textarea id="description" value={base.description} onChange={e => setBase(prev => ({ ...prev, description: e.target.value }))} className="w-full mt-1 p-3 border rounded-lg" rows={6} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <Label htmlFor="price">Preis (€)</Label>
+                                    <Input id="price" type="number" value={base.price} onChange={e => setBase(prev => ({ ...prev, price: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="original_price">Urspr. Preis (€)</Label>
+                                    <Input id="original_price" type="number" value={base.original_price} onChange={e => setBase(prev => ({ ...prev, original_price: e.target.value }))} />
+                                </div>
+                                <div className="flex items-center gap-2 mt-6">
+                                    <input id="price_negotiable" type="checkbox" checked={base.price_negotiable} onChange={e => setBase(prev => ({ ...prev, price_negotiable: e.target.checked }))} />
+                                    <Label htmlFor="price_negotiable">VB</Label>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <Label>Zustand</Label>
+                                    <select className="w-full mt-1 p-3 border rounded-lg" value={base.condition} onChange={e => setBase(prev => ({ ...prev, condition: e.target.value }))}>
+                                        <option value="mint">Neuwertig</option>
+                                        <option value="excellent">Sehr gut</option>
+                                        <option value="good">Gut</option>
+                                        <option value="fair">Befriedigend</option>
+                                        <option value="poor">Ausreichend</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <Label htmlFor="condition_notes">Zustandsnotizen</Label>
+                                    <Input id="condition_notes" value={base.condition_notes} onChange={e => setBase(prev => ({ ...prev, condition_notes: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <Label htmlFor="city">Stadt</Label>
+                                    <Input id="city" value={base.location_city} onChange={e => setBase(prev => ({ ...prev, location_city: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="state">Bundesland</Label>
+                                    <Input id="state" value={base.location_state} onChange={e => setBase(prev => ({ ...prev, location_state: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="zip">PLZ</Label>
+                                    <Input id="zip" value={base.location_postal_code} onChange={e => setBase(prev => ({ ...prev, location_postal_code: e.target.value }))} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="flex items-center gap-2">
+                                    <input id="shipping_available" type="checkbox" checked={base.shipping_available} onChange={e => setBase(prev => ({ ...prev, shipping_available: e.target.checked }))} />
+                                    <Label htmlFor="shipping_available">Versand möglich</Label>
+                                </div>
+                                <div>
+                                    <Label htmlFor="shipping_cost">Versandkosten (€)</Label>
+                                    <Input id="shipping_cost" type="number" value={base.shipping_cost} onChange={e => setBase(prev => ({ ...prev, shipping_cost: e.target.value }))} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input id="pickup_available" type="checkbox" checked={base.pickup_available} onChange={e => setBase(prev => ({ ...prev, pickup_available: e.target.checked }))} />
+                                    <Label htmlFor="pickup_available">Abholung möglich</Label>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    {/* Images Manager */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Bilder</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Vorhandene Bilder (Ziehen zum Sortieren)</Label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {localImages.map((url, index) => (
+                                        <div key={index} className="relative group border rounded overflow-hidden">
+                                            <img src={url} alt={`Bild ${index + 1}`} className="w-full h-28 object-cover" />
+                                            <div className="absolute top-1 left-1 flex items-center gap-1 text-xs bg-background/80 px-1 rounded">
+                                                <GripVertical className="w-3 h-3" />
+                                                <span>{index + 1}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExistingImage(index)}
+                                                className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background"
+                                                aria-label="Entfernen"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                            {/* Simple reorder controls */}
+                                            <div className="absolute bottom-1 left-1 right-1 flex justify-between gap-1 opacity-0 group-hover:opacity-100 transition">
+                                                <Button type="button" variant="outline" size="sm" disabled={index === 0} onClick={() => moveImage(index, index - 1)}>←</Button>
+                                                <Button type="button" variant="outline" size="sm" disabled={index === localImages.length - 1} onClick={() => moveImage(index, index + 1)}>→</Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Neue Bilder hinzufügen</Label>
+                                <Input type="file" multiple accept="image/*" onChange={onFileSelect} />
+                                {newFiles.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {newFiles.map((file, index) => (
+                                            <div key={index} className="relative border rounded overflow-hidden">
+                                                <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-28 object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeNewFile(index)}
+                                                    className="absolute top-1 right-1 p-1 rounded bg-background/70 hover:bg-background"
+                                                    aria-label="Entfernen"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
                     {/* Technical Details Form */}
                     <Card>
                         <CardHeader>

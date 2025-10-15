@@ -42,14 +42,15 @@ export async function GET(
                 .eq('listing_id', listingId)
                 .single();
 
-            details = data;
+            details = data as any;
             detailsError = error;
 
             // Merge specifications into details for frontend
-            if (data && data.specifications) {
+            const dataAny: any = data;
+            if (dataAny && dataAny.specifications) {
                 details = {
-                    ...data,
-                    ...data.specifications
+                    ...dataAny,
+                    ...dataAny.specifications
                 };
             }
         } else if ((listing as any).category === 'amps') {
@@ -59,14 +60,15 @@ export async function GET(
                 .eq('listing_id', listingId)
                 .single();
 
-            details = data;
+            details = data as any;
             detailsError = error;
 
             // Merge specifications into details for frontend
-            if (data && data.specifications) {
+            const dataAny: any = data;
+            if (dataAny && dataAny.specifications) {
                 details = {
-                    ...data,
-                    ...data.specifications
+                    ...dataAny,
+                    ...dataAny.specifications
                 };
             }
         } else if ((listing as any).category === 'effects') {
@@ -76,14 +78,15 @@ export async function GET(
                 .eq('listing_id', listingId)
                 .single();
 
-            details = data;
+            details = data as any;
             detailsError = error;
 
             // Merge specifications into details for frontend
-            if (data && data.specifications) {
+            const dataAny: any = data;
+            if (dataAny && dataAny.specifications) {
                 details = {
-                    ...data,
-                    ...data.specifications
+                    ...dataAny,
+                    ...dataAny.specifications
                 };
             }
         }
@@ -153,6 +156,8 @@ export async function PUT(
         // We support updating category-specific "details" here. Any extra fields
         // that don't exist as columns are stored inside the JSONB specifications field.
         const detailsInput = (body && body.details) || {};
+        const baseInput = (body && body.base) || {};
+        const imagesInput = Array.isArray(body?.images) ? body.images as string[] : undefined;
 
         // Helper to only set fields that are explicitly provided (avoid overwriting with null)
         const assignIfDefined = (target: any, sourceKey: string, destKey?: string) => {
@@ -203,7 +208,7 @@ export async function PUT(
 
             const { data, error } = await supabase
                 .from('guitars_detail')
-                .upsert([payload], { onConflict: 'listing_id' })
+                .upsert(payload as any, { onConflict: 'listing_id' })
                 .select('*')
                 .single();
 
@@ -235,7 +240,7 @@ export async function PUT(
 
             const { data, error } = await supabase
                 .from('amps_detail')
-                .upsert([payload], { onConflict: 'listing_id' })
+                .upsert(payload as any, { onConflict: 'listing_id' })
                 .select('*')
                 .single();
 
@@ -267,7 +272,7 @@ export async function PUT(
 
             const { data, error } = await supabase
                 .from('effects_detail')
-                .upsert([payload], { onConflict: 'listing_id' })
+                .upsert(payload as any, { onConflict: 'listing_id' })
                 .select('*')
                 .single();
 
@@ -286,6 +291,54 @@ export async function PUT(
                     payload: payload
                 }
             }, { status: 500 });
+        }
+
+        // Optionally update base listing fields if provided
+        if (baseInput && Object.keys(baseInput).length > 0) {
+            const allowedKeys = [
+                'title', 'description', 'price', 'original_price', 'price_negotiable',
+                'condition', 'condition_notes',
+                'location_city', 'location_state', 'location_postal_code',
+                'shipping_available', 'shipping_cost', 'shipping_methods',
+                'pickup_available', 'status', 'tags', 'case_included', 'accessories', 'videos'
+            ];
+            const baseUpdate: Record<string, any> = {};
+            for (const key of allowedKeys) {
+                if (Object.prototype.hasOwnProperty.call(baseInput, key)) {
+                    baseUpdate[key] = (baseInput as any)[key];
+                }
+            }
+
+            if (Object.keys(baseUpdate).length > 0) {
+                const { error: baseUpdateError } = await (supabase as any)
+                    .from('listings')
+                    .update(baseUpdate)
+                    .eq('id', listingId);
+
+                if (baseUpdateError) {
+                    console.error('Base update error:', baseUpdateError);
+                    return NextResponse.json({
+                        error: 'Failed to update listing fields',
+                        details: baseUpdateError.message
+                    }, { status: 500 });
+                }
+            }
+        }
+
+        // Optionally update listing images if provided
+        if (imagesInput) {
+            const { error: imagesUpdateError } = await (supabase as any)
+                .from('listings')
+                .update({ images: imagesInput })
+                .eq('id', listingId);
+
+            if (imagesUpdateError) {
+                console.error('Images update error:', imagesUpdateError);
+                return NextResponse.json({
+                    error: 'Failed to update images',
+                    details: imagesUpdateError.message
+                }, { status: 500 });
+            }
         }
 
         return NextResponse.json({ message: 'Listing updated successfully', details: upsertResult });
