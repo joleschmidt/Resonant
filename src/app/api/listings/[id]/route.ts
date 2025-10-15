@@ -98,11 +98,7 @@ export async function GET(
             }, { status: 500 });
         }
 
-        // Increment view count (temporarily disabled due to type issues)
-        // await supabase
-        //     .from('listings')
-        //     .update({ views: ((listing as any).views || 0) + 1 })
-        //     .eq('id', listingId);
+        // Note: View counting moved to POST /api/listings/[id]/view to avoid double increments
 
         return NextResponse.json({
             data: {
@@ -334,7 +330,7 @@ export async function PUT(
 
             if (imagesUpdateError) {
                 console.error('Images update error:', imagesUpdateError);
-        return NextResponse.json({
+                return NextResponse.json({
                     error: 'Failed to update images',
                     details: imagesUpdateError.message
                 }, { status: 500 });

@@ -116,6 +116,9 @@ export default function ListingDetailPage() {
     const [showBuyNow, setShowBuyNow] = useState(false);
     const [offerAmount, setOfferAmount] = useState('');
     const [offerMessage, setOfferMessage] = useState('');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoritesCount, setFavoritesCount] = useState<number | null>(null);
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
     const [showFullDescription, setShowFullDescription] = useState(false);
     const router = useRouter();
 
@@ -134,6 +137,8 @@ export default function ListingDetailPage() {
 
                 const data = await response.json();
                 setListing(data.data);
+                // Fire-and-forget view increment with debounce cookie on server
+                fetch(`/api/listings/${params.id}/view`, { method: 'POST' }).catch(() => { });
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
             } finally {
@@ -144,6 +149,23 @@ export default function ListingDetailPage() {
         if (params.id) {
             fetchListing();
         }
+    }, [params.id]);
+
+    // Fetch favorite status/count after listing is loaded
+    useEffect(() => {
+        const fetchFavoriteStatus = async () => {
+            if (!params.id) return;
+            try {
+                const res = await fetch(`/api/listings/${params.id}/favorite`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const json = await res.json();
+                setIsFavorite(!!json.is_favorite);
+                if (typeof json.favorites_count === 'number') setFavoritesCount(json.favorites_count);
+            } catch {
+                // ignore
+            }
+        };
+        fetchFavoriteStatus();
     }, [params.id]);
 
     if (loading) {
@@ -200,8 +222,21 @@ export default function ListingDetailPage() {
             return;
         }
 
-        // TODO: Implement price offer API call
-        alert(`Preisvorschlag von ${offerAmount}€ wurde gesendet!`);
+        try {
+            const res = await fetch(`/api/listings/${params.id}/offer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: parseFloat(offerAmount), message: offerMessage || undefined })
+            });
+            const json = await res.json();
+            if (!res.ok) {
+                alert(json?.error || 'Fehler beim Senden des Angebots');
+                return;
+            }
+            alert('Preisvorschlag gesendet. Status: ' + (json.status || 'pending'));
+        } catch (e) {
+            alert('Fehler beim Senden des Angebots');
+        }
         setShowPriceOffer(false);
         setOfferAmount('');
         setOfferMessage('');
@@ -216,6 +251,52 @@ export default function ListingDetailPage() {
         // TODO: Implement buy now API call
         alert('Kaufprozess gestartet! Du wirst zur Zahlungsseite weitergeleitet.');
         setShowBuyNow(false);
+    };
+
+    const handleToggleFavorite = async () => {
+        if (!listing) return;
+        if (!user) {
+            alert('Bitte melde dich an, um Anzeigen zu merken.');
+            return;
+        }
+        if (isTogglingFavorite) return;
+        setIsTogglingFavorite(true);
+        const prev = isFavorite;
+        const prevCount = favoritesCount;
+        // optimistic
+        setIsFavorite(!prev);
+        if (prevCount != null) setFavoritesCount(prev ? Math.max(0, prevCount - 1) : prevCount + 1);
+        try {
+            const res = await fetch(`/api/listings/${listing.id}/favorite`, { method: prev ? 'DELETE' : 'POST' });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json?.error || 'Favorite failed');
+            if (typeof json.favorites_count === 'number') setFavoritesCount(json.favorites_count);
+            if (typeof json.is_favorite === 'boolean') setIsFavorite(json.is_favorite);
+        } catch (e) {
+            // rollback
+            setIsFavorite(prev);
+            setFavoritesCount(prevCount ?? null);
+            alert('Aktion fehlgeschlagen. Bitte später erneut versuchen.');
+        } finally {
+            setIsTogglingFavorite(false);
+        }
+    };
+
+    const handleShare = async () => {
+        const url = typeof window !== 'undefined' ? window.location.href : '';
+        const title = listing?.title || 'Anzeige';
+        try {
+            if (navigator.share) {
+                await navigator.share({ title, url });
+            } else if (navigator.clipboard && url) {
+                await navigator.clipboard.writeText(url);
+                alert('Link kopiert');
+            } else {
+                prompt('Link kopieren:', url);
+            }
+        } catch {
+            // user cancelled or share failed; ignore
+        }
     };
 
     return (
@@ -364,10 +445,10 @@ export default function ListingDetailPage() {
                                     {/* Mobile actions in price container: like, share, buy now */}
                                     <div className="flex items-center justify-between gap-2 lg:hidden mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Button variant="outline" size="icon" aria-label="Merken">
-                                                <Heart className="w-4 h-4" />
+                                            <Button variant={isFavorite ? 'destructive' : 'outline'} size="icon" aria-label="Merken" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
+                                                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                                             </Button>
-                                            <Button variant="outline" size="icon" aria-label="Teilen">
+                                            <Button variant="outline" size="icon" aria-label="Teilen" onClick={handleShare}>
                                                 <Share2 className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -385,10 +466,13 @@ export default function ListingDetailPage() {
                                             <MessageCircle className="w-4 h-4 mr-2" />
                                             Nachricht senden
                                         </Button>
-                                        <Button variant="outline" size="lg">
-                                            <Heart className="w-4 h-4" />
+                                        <Button variant={isFavorite ? 'destructive' : 'outline'} size="lg" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
+                                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                                            {typeof favoritesCount === 'number' && (
+                                                <span className="ml-2 text-sm">{favoritesCount}</span>
+                                            )}
                                         </Button>
-                                        <Button variant="outline" size="lg">
+                                        <Button variant="outline" size="lg" onClick={handleShare}>
                                             <Share2 className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -474,6 +558,9 @@ export default function ListingDetailPage() {
                                                             {listing.pickup_available && (
                                                                 <li>✓ Abholung möglich in {listing.location_city}</li>
                                                             )}
+                                                            {Array.isArray(listing.shipping_methods) && listing.shipping_methods.length > 0 && (
+                                                                <li>Versandarten: {listing.shipping_methods.join(', ')}</li>
+                                                            )}
                                                         </ul>
                                                     </div>
                                                     <div className="flex gap-2">
@@ -523,8 +610,10 @@ export default function ListingDetailPage() {
                                         </div>
                                     </div>
 
-                                    <Button variant="outline" className="w-full">
-                                        Alle Anzeigen von {listing.profiles.username}
+                                    <Button variant="outline" className="w-full" asChild>
+                                        <a href={`/listings?seller_id=${listing.seller_id}`}>
+                                            Alle Anzeigen von {listing.profiles.username}
+                                        </a>
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -638,6 +727,32 @@ export default function ListingDetailPage() {
                                     <p className="whitespace-pre-wrap">{listing.description}</p>
                                 )}
                             </div>
+                            {listing.condition_notes && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Zustand</h3>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{listing.condition_notes}</p>
+                                </div>
+                            )}
+                            {Array.isArray(listing.tags) && listing.tags.length > 0 && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Tags</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {listing.tags.map((t, i) => (
+                                            <Badge key={i} variant="secondary">{t}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {Array.isArray(listing.accessories) && listing.accessories.length > 0 && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Zubehör</h3>
+                                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                                        {listing.accessories.map((a, i) => (
+                                            <li key={i}>{a}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
