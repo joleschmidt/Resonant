@@ -607,7 +607,20 @@ export default function ListingDetailPage() {
                                                 </div>
                                             );
                                         })}
+                                    {Array.isArray(listing.details.custom_fields) && listing.details.custom_fields.length > 0 && (
+                                        <>
+                                            <div className="space-y-2">
+                                                {listing.details.custom_fields.map((field: { key: string; value: string }, index: number) => (
+                                                    <div key={index} className="flex justify-between">
+                                                        <span className="font-medium">{field.key}</span>
+                                                        <span className="text-muted-foreground">{field.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+
                             </CardContent>
                         </Card>
                     </div>
