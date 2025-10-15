@@ -64,6 +64,7 @@ export default function ListingsPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
+    const [showMobileControls, setShowMobileControls] = useState(false);
 
     // Fetch listings
     const fetchListings = useCallback(async () => {
@@ -118,30 +119,57 @@ export default function ListingsPage() {
         <div className="container mx-auto px-4 py-8">
             {/* Category Selection */}
             <div className="mb-8">
-                <Tabs value={filters.category || 'all'} onValueChange={(value) => {
-                    const next = value === 'all' ? undefined : value;
-                    handleFilterChange('category', next);
-                    // Apply client-side filter instantly
-                    const nextFilters = { ...filters, category: next } as any;
-                    const filtered = applyClientFilters(allListings, nextFilters);
-                    setListings(filtered);
-                    setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
-                }}>
-                    <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-                        <TabsTrigger value="all">Alle</TabsTrigger>
-                        <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
-                        <TabsTrigger value={LISTING_CATEGORIES.AMPS}>Amps</TabsTrigger>
-                        <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <p className="text-muted-foreground mt-4">
-                    {pagination?.total_count || 0} Anzeigen gefunden
-                </p>
+                <div className="flex items-center justify-between">
+                    <Tabs value={filters.category || 'all'} onValueChange={(value) => {
+                        const next = value === 'all' ? undefined : value;
+                        handleFilterChange('category', next);
+                        // Apply client-side filter instantly
+                        const nextFilters = { ...filters, category: next } as any;
+                        const filtered = applyClientFilters(allListings, nextFilters);
+                        setListings(filtered);
+                        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
+                    }}>
+                        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+                            <TabsTrigger value="all">Alle</TabsTrigger>
+                            <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
+                            <TabsTrigger value={LISTING_CATEGORIES.AMPS}>Amps</TabsTrigger>
+                            <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <div className="flex items-center gap-2">
+                        {/* Desktop Filter toggle aligned with tabs */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowFilters((v) => !v)}
+                            className="hidden lg:flex text-muted-foreground hover:text-foreground"
+                            aria-expanded={showFilters}
+                            aria-controls="desktop-filters"
+                        >
+                            <SlidersHorizontal className="h-4 w-4 mr-1" />
+                            Filter
+                        </Button>
+                        {/* Mobile combined controls toggle */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowMobileControls((v) => !v)}
+                            aria-expanded={showMobileControls}
+                            aria-controls="mobile-controls"
+                            className="lg:hidden ml-2"
+                            aria-label="Suche und Filter umschalten"
+                        >
+                            <SlidersHorizontal className="h-5 w-5" />
+                        </Button>
+                    </div>
+                </div>
             </div>
 
+            {/* Mobile Toggle for Search & Filters moved into category header */}
+
             {/* Compact Search and Controls */}
-            <div className="mb-4">
-                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+            <div className="mb-4" id="mobile-controls">
+                <div className={`${showMobileControls ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-3 lg:items-center`}>
                     {/* Search */}
                     <div className="flex-1">
                         <div className="relative flex items-center gap-2">
@@ -163,16 +191,8 @@ export default function ListingsPage() {
                         </div>
                     </div>
 
-                    {/* Filter Toggle - Less prominent */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="lg:hidden text-muted-foreground hover:text-foreground"
-                    >
-                        <Filter className="h-4 w-4 mr-1" />
-                        Filter
-                    </Button>
+                    {/* Filter Toggle (mobile inline button removed; use global mobile toggle) */}
+                    <div className="hidden" />
 
                     {/* View Mode Toggle */}
                     <div className="flex gap-2">
@@ -194,9 +214,76 @@ export default function ListingsPage() {
                 </div>
             </div>
 
-            {/* Filters Panel */}
+            {/* Filters Panel (mobile only, stays at top) */}
+            {showMobileControls && (
+                <Card className="mb-6 lg:hidden">
+                    <CardContent className="p-4 sm:p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {/* Price Range */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Preis</label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={filters.price_min || ''}
+                                        onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    />
+                                    <Input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={filters.price_max || ''}
+                                        onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Condition */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Zustand</label>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.values(CONDITIONS).map((condition) => (
+                                        <Badge
+                                            key={condition}
+                                            variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
+                                            className="cursor-pointer"
+                                            onClick={() => {
+                                                const currentConditions = filters.condition || [];
+                                                const newConditions = currentConditions.includes(condition)
+                                                    ? currentConditions.filter((c: string) => c !== condition)
+                                                    : [...currentConditions, condition];
+                                                handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
+                                            }}
+                                        >
+                                            {getConditionLabel(condition)}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Ort</label>
+                                <Input
+                                    placeholder="Stadt"
+                                    value={filters.location_city || ''}
+                                    onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Filter Actions */}
+                        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                            <Button onClick={applyFilters}>Filter anwenden</Button>
+                            <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Desktop Filters Panel directly under categories */}
             {showFilters && (
-                <Card className="mb-6">
+                <Card id="desktop-filters" className="mb-6 hidden lg:block">
                     <CardContent className="p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {/* Price Range */}
@@ -287,22 +374,12 @@ export default function ListingsPage() {
                 </Card>
             ) : (
                 <>
-                    {/* Results Header */}
+                    {/* Results Header (counts + view toggle only) */}
                     <div className="flex items-center justify-between mb-6">
                         <p className="text-sm text-muted-foreground">
                             {pagination?.total_count} Anzeigen gefunden
                         </p>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="hidden lg:flex text-muted-foreground hover:text-foreground"
-                            >
-                                <SlidersHorizontal className="h-4 w-4 mr-1" />
-                                Filter
-                            </Button>
-                        </div>
+                        <div className="flex items-center gap-2" />
                     </div>
 
                     {/* Listings Grid */}

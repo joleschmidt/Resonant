@@ -51,11 +51,6 @@ export function Header() {
           {user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
-                <Link href="/listings/create">
-                  <Button size="sm">
-                    Anzeige erstellen
-                  </Button>
-                </Link>
                 <UserMenu />
               </div>
               <div className="md:hidden">
@@ -76,6 +71,7 @@ export function Header() {
                     <DropdownMenuItem asChild>
                       <Link href="/listings/create">Anzeige erstellen</Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profil</Link>
                     </DropdownMenuItem>

@@ -31,6 +31,14 @@ export async function GET(
             .eq('id', (listing as any).seller_id)
             .single();
 
+        // Optional: increment views when client explicitly requests it
+        const shouldIncrement = request.headers.get('x-increment-view') === '1';
+        if (shouldIncrement) {
+            await (supabase as any).rpc('increment_listing_views', { p_listing_id: listingId });
+            // reflect increment locally
+            (listing as any).views = ((listing as any).views || 0) + 1;
+        }
+
         // Get category-specific details
         let details = null;
         let detailsError = null;
@@ -103,6 +111,7 @@ export async function GET(
         return NextResponse.json({
             data: {
                 ...(listing as any),
+                views: ((listing as any).views ?? 0),
                 profiles: profile,
                 details
             }

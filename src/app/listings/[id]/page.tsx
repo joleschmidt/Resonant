@@ -126,7 +126,7 @@ export default function ListingDetailPage() {
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                const response = await fetch(`/api/listings/${params.id}`);
+                const response = await fetch(`/api/listings/${params.id}`, { headers: { 'x-increment-view': '1' } });
 
                 if (!response.ok) {
                     if (response.status === 404) {
@@ -137,8 +137,7 @@ export default function ListingDetailPage() {
 
                 const data = await response.json();
                 setListing(data.data);
-                // Fire-and-forget view increment with debounce cookie on server
-                fetch(`/api/listings/${params.id}/view`, { method: 'POST' }).catch(() => { });
+                // GET already increments views
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
             } finally {
@@ -417,7 +416,6 @@ export default function ListingDetailPage() {
                                     <span>{new Date(listing.created_at).toLocaleDateString('de-DE')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-
                                     <span>{listing.views} Aufrufe</span>
                                 </div>
                             </div>

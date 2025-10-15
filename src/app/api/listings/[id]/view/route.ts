@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 
-// Debounce window in minutes
 const VIEW_DEBOUNCE_MINUTES = 30;
 
 export async function POST(
@@ -19,28 +18,24 @@ export async function POST(
         }
 
         const supabase = await createClient();
-        const { error } = await supabase
-            .from('listings')
-            .update({ views: (null as any) }) // placeholder; use RPC to avoid race
-            .eq('id', listingId);
-
-        // Fallback: use RPC to increment atomically
-        if (error) {
-            const { error: rpcError } = await (supabase as any).rpc('increment_listing_views', { p_listing_id: listingId });
-            if (rpcError) {
-                console.error('View increment error:', rpcError);
-                return NextResponse.json({ error: 'failed' }, { status: 500 });
-            }
-        } else {
-            // If direct update worked, do a single SQL that increments
-            await (supabase as any)
-                .from('listings')
-                .update({ views: (undefined as any) })
-                .eq('id', listingId);
+        // Atomic increment via RPC
+        const { error: rpcError } = await (supabase as any).rpc('increment_listing_views', { p_listing_id: listingId });
+        if (rpcError) {
+            console.error('View increment error:', rpcError);
+            return NextResponse.json({ error: 'failed' }, { status: 500 });
         }
 
-        const res = NextResponse.json({ ok: true });
-        // Set debounce cookie
+        // Fetch updated count
+        const { data: updated, error: fetchError } = await supabase
+            .from('listings')
+            .select('views')
+            .eq('id', listingId)
+            .single();
+        if (fetchError) {
+            return NextResponse.json({ ok: true });
+        }
+
+        const res = NextResponse.json({ ok: true, views: (updated as any).views ?? null });
         res.cookies.set({
             name: key,
             value: '1',

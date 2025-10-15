@@ -27,10 +27,10 @@ export function UserMenu() {
   const reset = useAuthStore((s) => s.reset);
   const router = useRouter();
 
-  // Fallbacks wenn Profil (noch) nicht geladen ist
+  // Show avatar image when available (profile or auth provider metadata)
   const displayName = profile?.username || user?.email?.split('@')[0] || 'User';
   const displayEmail = profile?.email || user?.email || '';
-  const avatarUrl = profile?.avatar_url || undefined;
+  const avatarUrl = profile?.avatar_url || (user as any)?.user_metadata?.avatar_url || undefined;
   const initials = (profile?.username || user?.email || 'U').substring(0, 2).toUpperCase();
 
   return (
@@ -51,6 +51,15 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
           </div>
         </DropdownMenuLabel>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem asChild>
+          <Link href="/listings/create" className="cursor-pointer">
+            <Package className="mr-2 h-4 w-4" />
+            <span>Anzeige erstellen</span>
+          </Link>
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
