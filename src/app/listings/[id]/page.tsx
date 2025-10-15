@@ -22,7 +22,8 @@ import {
     Calendar,
     Euro,
     ArrowLeft,
-    ChevronRight
+    ChevronRight,
+    Pencil
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -220,8 +221,8 @@ export default function ListingDetailPage() {
         <div className="min-h-screen bg-background pb-28 lg:pb-12 xl:pb-16">
             <div className="container mx-auto px-4 py-4">
 
-                {/* Breadcrumb + right-aligned Edit */}
-                <div className="mb-3 lg:mb-4 xl:mb-4 flex items-center justify-between">
+                {/* Breadcrumb + right-aligned Edit (hidden on mobile) */}
+                <div className="mb-3 lg:mb-4 xl:mb-4 flex items-center justify-between hidden sm:flex">
                     <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Button
                             variant="ghost"
@@ -264,14 +265,29 @@ export default function ListingDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 min-h-[90vh] pb-2">
                     {/* Images */}
                     <div className="h-full flex flex-col gap-3 pb-2 max-h-[60vh] sm:max-h-[70vh] lg:max-h-[84.65vh]">
-                        {/* Main Image */}
-                        <button className="flex-1 min-h-0 w-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
-                            <img
-                                src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
-                                alt={listing.title}
-                                className="w-full h-full object-contain"
-                            />
-                        </button>
+                        {/* Main Image with mobile overlay controls */}
+                        <div className="relative">
+                            <button className="flex-1 min-h-0 w-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
+                                <img
+                                    src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
+                                    alt={listing.title}
+                                    className="w-full h-full object-contain"
+                                />
+                            </button>
+                            {/* Mobile-only top overlay icons */}
+                            <div className="absolute inset-0 pointer-events-none sm:hidden">
+                                <div className="flex items-start justify-between p-3">
+                                    <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Zurück" onClick={() => router.back()}>
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </Button>
+                                    {isOwner && (
+                                        <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Bearbeiten" onClick={() => window.location.href = `/listings/${listing.id}/edit`}>
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Thumbnail Images */}
                         {listing.images && listing.images.length > 1 && (
@@ -319,7 +335,7 @@ export default function ListingDetailPage() {
                                     <span>{new Date(listing.created_at).toLocaleDateString('de-DE')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <span className="w-4 h-4 flex items-center justify-center">👁</span>
+
                                     <span>{listing.views} Aufrufe</span>
                                 </div>
                             </div>
