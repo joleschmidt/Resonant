@@ -334,7 +334,7 @@ export async function PUT(
 
             if (imagesUpdateError) {
                 console.error('Images update error:', imagesUpdateError);
-                return NextResponse.json({
+        return NextResponse.json({
                     error: 'Failed to update images',
                     details: imagesUpdateError.message
                 }, { status: 500 });

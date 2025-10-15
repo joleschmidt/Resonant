@@ -218,13 +218,13 @@ export default function ListingDetailPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-4">
                 {/* Back Button */}
 
 
 
                 {/* Breadcrumb + right-aligned Edit */}
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between">
                     <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Button
                             variant="ghost"
@@ -264,26 +264,26 @@ export default function ListingDetailPage() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[90vh] pb-2">
                     {/* Images */}
-                    <div className="space-y-4">
+                    <div className="h-full flex flex-col gap-3 pb-2 max-h-[84.65vh]">
                         {/* Main Image */}
-                        <button className="aspect-square rounded-lg overflow-hidden bg-muted w-full" onClick={() => setLightboxOpen(true)}>
+                        <button className="flex-1 min-h-0 w-full rounded-lg overflow-hidden bg-muted" onClick={() => setLightboxOpen(true)}>
                             <img
                                 src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                 alt={listing.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                             />
                         </button>
 
                         {/* Thumbnail Images */}
                         {listing.images && listing.images.length > 1 && (
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-4 gap-2 h-24">
                                 {listing.images.map((image, index) => (
                                     <button
                                         key={index}
                                         onClick={() => setCurrentImageIndex(index)}
-                                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
+                                        className={`rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
                                             ? 'border-primary'
                                             : 'border-transparent hover:border-muted-foreground'
                                             }`}
@@ -300,7 +300,7 @@ export default function ListingDetailPage() {
                     </div>
 
                     {/* Details */}
-                    <div className="space-y-6">
+                    <div className="h-full flex flex-col space-y-4 pb-2">
                         {/* Header */}
                         <div>
                             <div className="flex items-center gap-2 mb-2">
@@ -505,7 +505,7 @@ export default function ListingDetailPage() {
                         )}
 
                         {/* Shipping & Pickup */}
-                        <Card>
+                        <Card className="mt-auto">
                             <CardContent className="p-6">
                                 <h3 className="font-semibold mb-4">Versand & Abholung</h3>
                                 <div className="space-y-3">
