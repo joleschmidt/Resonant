@@ -10,22 +10,10 @@ export async function GET(
         const supabase = await createClient();
         const { id: listingId } = await params;
 
-        // Get listing with seller profile
+        // Get listing first
         const { data: listing, error: listingError } = await supabase
             .from('listings')
-            .select(`
-        *,
-        profiles!seller_id (
-          id,
-          username,
-          avatar_url,
-          verification_status,
-          seller_rating,
-          total_sales,
-          location,
-          created_at
-        )
-      `)
+            .select('*')
             .eq('id', listingId)
             .eq('status', 'active')
             .single();
@@ -35,6 +23,13 @@ export async function GET(
                 error: 'Listing not found'
             }, { status: 404 });
         }
+
+        // Get seller profile separately
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, verification_status, seller_rating, total_sales, location, created_at')
+            .eq('id', (listing as any).seller_id)
+            .single();
 
         // Get category-specific details
         let details = null;
@@ -85,6 +80,7 @@ export async function GET(
         return NextResponse.json({
             data: {
                 ...(listing as any),
+                profiles: profile,
                 details
             }
         });
