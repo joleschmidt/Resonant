@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Plus } from 'lucide-react';
 
 interface ListingDetails {
     id: string;
@@ -46,7 +46,17 @@ export default function EditListingPage() {
         country_of_origin: '',
         guitar_type: '',
         amp_type: '',
-        effect_type: ''
+        effect_type: '',
+        // Guitar-specific details
+        body_wood: '',
+        neck_wood: '',
+        fretboard_wood: '',
+        pickups: '',
+        electronics: '',
+        hardware: '',
+        finish: '',
+        // Custom fields
+        custom_fields: [] as Array<{ key: string, value: string }>
     });
 
     useEffect(() => {
@@ -71,7 +81,17 @@ export default function EditListingPage() {
                         country_of_origin: data.data.details.country_of_origin || '',
                         guitar_type: data.data.details.guitar_type || '',
                         amp_type: data.data.details.amp_type || '',
-                        effect_type: data.data.details.effect_type || ''
+                        effect_type: data.data.details.effect_type || '',
+                        // Guitar-specific details
+                        body_wood: data.data.details.body_wood || '',
+                        neck_wood: data.data.details.neck_wood || '',
+                        fretboard_wood: data.data.details.fretboard_wood || '',
+                        pickups: data.data.details.pickups || '',
+                        electronics: data.data.details.electronics || '',
+                        hardware: data.data.details.hardware || '',
+                        finish: data.data.details.finish || '',
+                        // Custom fields
+                        custom_fields: data.data.details.custom_fields || []
                     });
                 }
             } catch (err) {
@@ -91,6 +111,8 @@ export default function EditListingPage() {
 
         setSaving(true);
         try {
+            console.log('Sending data:', { details: formData });
+
             const response = await fetch(`/api/listings/${params.id}`, {
                 method: 'PUT',
                 headers: {
@@ -101,12 +123,16 @@ export default function EditListingPage() {
                 }),
             });
 
+            const responseData = await response.json();
+            console.log('Response:', responseData);
+
             if (!response.ok) {
-                throw new Error('Fehler beim Speichern');
+                throw new Error(`Fehler beim Speichern: ${responseData.error || response.statusText}`);
             }
 
             router.push(`/listings/${params.id}`);
         } catch (err) {
+            console.error('Save error:', err);
             setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
         } finally {
             setSaving(false);
@@ -243,21 +269,162 @@ export default function EditListingPage() {
 
                             {/* Category-specific fields */}
                             {listing.category === 'guitars' && (
-                                <div>
-                                    <Label htmlFor="guitar_type">Typ</Label>
-                                    <select
-                                        id="guitar_type"
-                                        value={formData.guitar_type}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, guitar_type: e.target.value }))}
-                                        className="w-full mt-1 p-3 border rounded-lg"
-                                    >
-                                        <option value="">Wähle einen Typ</option>
-                                        <option value="electric">E-Gitarre</option>
-                                        <option value="acoustic">Akustikgitarre</option>
-                                        <option value="classical">Klassische Gitarre</option>
-                                        <option value="bass">Bass</option>
-                                    </select>
-                                </div>
+                                <>
+                                    <div>
+                                        <Label htmlFor="guitar_type">Typ</Label>
+                                        <select
+                                            id="guitar_type"
+                                            value={formData.guitar_type}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, guitar_type: e.target.value }))}
+                                            className="w-full mt-1 p-3 border rounded-lg"
+                                        >
+                                            <option value="">Wähle einen Typ</option>
+                                            <option value="electric">E-Gitarre</option>
+                                            <option value="acoustic">Akustikgitarre</option>
+                                            <option value="classical">Klassische Gitarre</option>
+                                            <option value="bass">Bass</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Guitar-specific details */}
+                                    <div className="border-t pt-4 mt-4">
+                                        <h3 className="font-semibold mb-4 text-lg">Gitarren-Spezifikationen</h3>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="body_wood">Korpus-Holz</Label>
+                                                <Input
+                                                    id="body_wood"
+                                                    value={formData.body_wood}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, body_wood: e.target.value }))}
+                                                    placeholder="z.B. Erle, Esche, Mahagoni"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="neck_wood">Hals-Holz</Label>
+                                                <Input
+                                                    id="neck_wood"
+                                                    value={formData.neck_wood}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, neck_wood: e.target.value }))}
+                                                    placeholder="z.B. Ahorn, Mahagoni"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="fretboard_wood">Griffbrett-Holz</Label>
+                                                <Input
+                                                    id="fretboard_wood"
+                                                    value={formData.fretboard_wood}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, fretboard_wood: e.target.value }))}
+                                                    placeholder="z.B. Palisander, Ahorn, Ebenholz"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="pickups">Pickups</Label>
+                                                <Input
+                                                    id="pickups"
+                                                    value={formData.pickups}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, pickups: e.target.value }))}
+                                                    placeholder="z.B. Fender Custom Shop 60/63"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="electronics">Elektronik</Label>
+                                                <Input
+                                                    id="electronics"
+                                                    value={formData.electronics}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, electronics: e.target.value }))}
+                                                    placeholder="z.B. 3-Way Switch, 1 Vol, 2 Tone"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label htmlFor="hardware">Hardware</Label>
+                                                <Input
+                                                    id="hardware"
+                                                    value={formData.hardware}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, hardware: e.target.value }))}
+                                                    placeholder="z.B. Fender Vintage Style Tuner"
+                                                />
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <Label htmlFor="finish">Finish</Label>
+                                                <Input
+                                                    id="finish"
+                                                    value={formData.finish}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, finish: e.target.value }))}
+                                                    placeholder="z.B. 3-Tone Sunburst, Nitrocellulose"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Custom Fields */}
+                                    <div className="border-t pt-4 mt-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-semibold text-lg">Eigene Felder</h3>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    custom_fields: [...(prev.custom_fields || []), { key: '', value: '' }]
+                                                }))}
+                                            >
+                                                + Feld hinzufügen
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {(formData.custom_fields || []).map((field, index) => (
+                                                <div key={index} className="flex gap-2 items-end">
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`custom-key-${index}`}>Feldname</Label>
+                                                        <Input
+                                                            id={`custom-key-${index}`}
+                                                            value={field.key}
+                                                            onChange={(e) => {
+                                                                const newFields = [...(formData.custom_fields || [])];
+                                                                newFields[index].key = e.target.value;
+                                                                setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                                                            }}
+                                                            placeholder="z.B. Saiten, Stimmmechaniken"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <Label htmlFor={`custom-value-${index}`}>Wert</Label>
+                                                        <Input
+                                                            id={`custom-value-${index}`}
+                                                            value={field.value}
+                                                            onChange={(e) => {
+                                                                const newFields = [...(formData.custom_fields || [])];
+                                                                newFields[index].value = e.target.value;
+                                                                setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                                                            }}
+                                                            placeholder="z.B. Elixir Nanoweb, Gotoh"
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const newFields = (formData.custom_fields || []).filter((_, i) => i !== index);
+                                                            setFormData(prev => ({ ...prev, custom_fields: newFields }));
+                                                        }}
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
                             )}
 
                             {listing.category === 'amps' && (
@@ -352,6 +519,69 @@ export default function EditListingPage() {
                                                 <span className="text-muted-foreground">
                                                     {formData.guitar_type || formData.amp_type || formData.effect_type}
                                                 </span>
+                                            </div>
+                                        )}
+
+                                        {/* Guitar-specific details */}
+                                        {listing.category === 'guitars' && (
+                                            <>
+                                                {formData.body_wood && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Korpus-Holz:</span>
+                                                        <span className="text-muted-foreground">{formData.body_wood}</span>
+                                                    </div>
+                                                )}
+                                                {formData.neck_wood && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Hals-Holz:</span>
+                                                        <span className="text-muted-foreground">{formData.neck_wood}</span>
+                                                    </div>
+                                                )}
+                                                {formData.fretboard_wood && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Griffbrett-Holz:</span>
+                                                        <span className="text-muted-foreground">{formData.fretboard_wood}</span>
+                                                    </div>
+                                                )}
+                                                {formData.pickups && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Pickups:</span>
+                                                        <span className="text-muted-foreground">{formData.pickups}</span>
+                                                    </div>
+                                                )}
+                                                {formData.electronics && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Elektronik:</span>
+                                                        <span className="text-muted-foreground">{formData.electronics}</span>
+                                                    </div>
+                                                )}
+                                                {formData.hardware && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Hardware:</span>
+                                                        <span className="text-muted-foreground">{formData.hardware}</span>
+                                                    </div>
+                                                )}
+                                                {formData.finish && (
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Finish:</span>
+                                                        <span className="text-muted-foreground">{formData.finish}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* Custom fields */}
+                                        {(formData.custom_fields || []).filter(field => field.key && field.value).length > 0 && (
+                                            <div className="border-t pt-2 mt-2">
+                                                <h4 className="font-medium text-xs text-muted-foreground mb-2">Eigene Felder:</h4>
+                                                {(formData.custom_fields || [])
+                                                    .filter(field => field.key && field.value)
+                                                    .map((field, index) => (
+                                                        <div key={index} className="flex justify-between">
+                                                            <span className="font-medium">{field.key}:</span>
+                                                            <span className="text-muted-foreground">{field.value}</span>
+                                                        </div>
+                                                    ))}
                                             </div>
                                         )}
                                     </div>

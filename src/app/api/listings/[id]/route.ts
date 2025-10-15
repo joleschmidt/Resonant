@@ -44,6 +44,14 @@ export async function GET(
 
             details = data;
             detailsError = error;
+
+            // Merge specifications into details for frontend
+            if (data && data.specifications) {
+                details = {
+                    ...data,
+                    ...data.specifications
+                };
+            }
         } else if ((listing as any).category === 'amps') {
             const { data, error } = await supabase
                 .from('amps_detail')
@@ -53,6 +61,14 @@ export async function GET(
 
             details = data;
             detailsError = error;
+
+            // Merge specifications into details for frontend
+            if (data && data.specifications) {
+                details = {
+                    ...data,
+                    ...data.specifications
+                };
+            }
         } else if ((listing as any).category === 'effects') {
             const { data, error } = await supabase
                 .from('effects_detail')
@@ -62,6 +78,14 @@ export async function GET(
 
             details = data;
             detailsError = error;
+
+            // Merge specifications into details for frontend
+            if (data && data.specifications) {
+                details = {
+                    ...data,
+                    ...data.specifications
+                };
+            }
         }
 
         if (detailsError) {
@@ -123,29 +147,152 @@ export async function PUT(
             }, { status: 403 });
         }
 
-        // Parse and validate request body
+        // Parse request body
         const body = await request.json();
-        const validatedData = updateListingSchema.parse(body);
 
-        // Update listing (temporarily disabled due to type issues)
-        // const { error: updateError } = await supabase
-        //     .from('listings')
-        //     .update(validatedData as any)
-        //     .eq('id', listingId);
+        // We support updating category-specific "details" here. Any extra fields
+        // that don't exist as columns are stored inside the JSONB specifications field.
+        const detailsInput = (body && body.details) || {};
 
-        // if (updateError) {
-        //     console.error('Listing update error:', updateError);
-        //     return NextResponse.json({
-        //         error: 'Failed to update listing'
-        //     }, { status: 500 });
-        // }
+        // Helper to only set fields that are explicitly provided (avoid overwriting with null)
+        const assignIfDefined = (target: any, sourceKey: string, destKey?: string) => {
+            if (Object.prototype.hasOwnProperty.call(detailsInput, sourceKey)) {
+                target[destKey || sourceKey] = detailsInput[sourceKey];
+            }
+        };
 
-        return NextResponse.json({
-            message: 'Listing updated successfully'
-        });
+        // Category-specific shape (merge with existing row to respect NOT NULL constraints)
+        let upsertResult: any = null;
+        let upsertError: any = null;
+        let payload: any = null;
+
+        if ((listing as any).category === 'guitars') {
+            // Load existing
+            const { data: existing } = await supabase
+                .from('guitars_detail')
+                .select('*')
+                .eq('listing_id', listingId)
+                .single();
+
+            payload = { listing_id: listingId };
+            // Only assign fields provided
+            assignIfDefined(payload, 'brand');
+            assignIfDefined(payload, 'model');
+            assignIfDefined(payload, 'series');
+            assignIfDefined(payload, 'year');
+            assignIfDefined(payload, 'country_of_origin');
+            assignIfDefined(payload, 'guitar_type');
+
+            // Merge specifications JSON
+            const existingSpecs = (existing && (existing as any).specifications) || {};
+            const newSpecs: any = { ...existingSpecs };
+            ['body_wood', 'neck_wood', 'fretboard_wood', 'pickups', 'electronics', 'hardware', 'finish', 'custom_fields']
+                .forEach((k) => {
+                    if (Object.prototype.hasOwnProperty.call(detailsInput, k)) {
+                        newSpecs[k] = detailsInput[k];
+                    }
+                });
+            payload.specifications = newSpecs;
+
+            // If creating a new row, ensure required fields exist
+            if (!existing) {
+                if (!payload.brand || !payload.guitar_type) {
+                    return NextResponse.json({ error: 'Validation failed', details: 'brand and guitar_type are required' }, { status: 422 });
+                }
+            }
+
+            const { data, error } = await supabase
+                .from('guitars_detail')
+                .upsert([payload], { onConflict: 'listing_id' })
+                .select('*')
+                .single();
+
+            upsertResult = data;
+            upsertError = error;
+        } else if ((listing as any).category === 'amps') {
+            const { data: existing } = await supabase
+                .from('amps_detail')
+                .select('*')
+                .eq('listing_id', listingId)
+                .single();
+
+            payload = { listing_id: listingId };
+            assignIfDefined(payload, 'brand');
+            assignIfDefined(payload, 'model');
+            assignIfDefined(payload, 'series');
+            assignIfDefined(payload, 'year');
+            assignIfDefined(payload, 'country_of_origin');
+            assignIfDefined(payload, 'amp_type');
+
+            const existingSpecs = (existing && (existing as any).specifications) || {};
+            payload.specifications = { ...existingSpecs, ...(detailsInput.specifications || {}) };
+
+            if (!existing) {
+                if (!payload.brand || !payload.amp_type) {
+                    return NextResponse.json({ error: 'Validation failed', details: 'brand and amp_type are required' }, { status: 422 });
+                }
+            }
+
+            const { data, error } = await supabase
+                .from('amps_detail')
+                .upsert([payload], { onConflict: 'listing_id' })
+                .select('*')
+                .single();
+
+            upsertResult = data;
+            upsertError = error;
+        } else if ((listing as any).category === 'effects') {
+            const { data: existing } = await supabase
+                .from('effects_detail')
+                .select('*')
+                .eq('listing_id', listingId)
+                .single();
+
+            payload = { listing_id: listingId };
+            assignIfDefined(payload, 'brand');
+            assignIfDefined(payload, 'model');
+            assignIfDefined(payload, 'series');
+            assignIfDefined(payload, 'year');
+            assignIfDefined(payload, 'country_of_origin');
+            assignIfDefined(payload, 'effect_type');
+
+            const existingSpecs = (existing && (existing as any).specifications) || {};
+            payload.specifications = { ...existingSpecs, ...(detailsInput.specifications || {}) };
+
+            if (!existing) {
+                if (!payload.brand || !payload.effect_type) {
+                    return NextResponse.json({ error: 'Validation failed', details: 'brand and effect_type are required' }, { status: 422 });
+                }
+            }
+
+            const { data, error } = await supabase
+                .from('effects_detail')
+                .upsert([payload], { onConflict: 'listing_id' })
+                .select('*')
+                .single();
+
+            upsertResult = data;
+            upsertError = error;
+        }
+
+        if (upsertError) {
+            console.error('Details upsert error:', upsertError);
+            console.error('Payload that failed:', JSON.stringify(payload, null, 2));
+            return NextResponse.json({
+                error: 'Failed to save details',
+                details: upsertError.message,
+                debug: {
+                    category: (listing as any).category,
+                    payload: payload
+                }
+            }, { status: 500 });
+        }
+
+        return NextResponse.json({ message: 'Listing updated successfully', details: upsertResult });
 
     } catch (error) {
         console.error('Update listing error:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
 
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json({
@@ -155,7 +302,9 @@ export async function PUT(
         }
 
         return NextResponse.json({
-            error: 'Internal server error'
+            error: 'Internal server error',
+            details: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
         }, { status: 500 });
     }
 }

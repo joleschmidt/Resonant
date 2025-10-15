@@ -24,6 +24,8 @@ import {
     ArrowLeft,
     ChevronRight
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 
 interface ListingDetails {
     id: string;
@@ -112,6 +114,8 @@ export default function ListingDetailPage() {
     const [showBuyNow, setShowBuyNow] = useState(false);
     const [offerAmount, setOfferAmount] = useState('');
     const [offerMessage, setOfferMessage] = useState('');
+    const router = useRouter();
+
 
     useEffect(() => {
         const fetchListing = async () => {
@@ -219,7 +223,7 @@ export default function ListingDetailPage() {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => window.history.back()}
+                        onClick={() => router.push('/listings')}
                         className="text-muted-foreground hover:text-foreground"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -560,7 +564,10 @@ export default function ListingDetailPage() {
                                     {Object.entries(listing.details)
                                         .filter(([key, value]) => {
                                             // Only show relevant fields with actual values
-                                            const relevantFields = ['brand', 'model', 'series', 'year', 'country_of_origin', 'guitar_type'];
+                                            const relevantFields = [
+                                                'brand', 'model', 'series', 'year', 'country_of_origin', 'guitar_type',
+                                                'body_wood', 'neck_wood', 'fretboard_wood', 'pickups', 'electronics', 'hardware', 'finish'
+                                            ];
                                             return relevantFields.includes(key) &&
                                                 value !== null &&
                                                 value !== undefined &&
@@ -575,7 +582,14 @@ export default function ListingDetailPage() {
                                                 'series': 'Serie',
                                                 'year': 'Baujahr',
                                                 'country_of_origin': 'Herkunftsland',
-                                                'guitar_type': 'Typ'
+                                                'guitar_type': 'Typ',
+                                                'body_wood': 'Korpus-Holz',
+                                                'neck_wood': 'Hals-Holz',
+                                                'fretboard_wood': 'Griffbrett-Holz',
+                                                'pickups': 'Pickups',
+                                                'electronics': 'Elektronik',
+                                                'hardware': 'Hardware',
+                                                'finish': 'Finish'
                                             };
 
                                             const displayValue = typeof value === 'boolean'
