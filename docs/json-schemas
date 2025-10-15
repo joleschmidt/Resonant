@@ -10,7 +10,12 @@
   "title": "User Profile",
   "description": "Complete user profile schema for AI processing",
   "type": "object",
-  "required": ["id", "username", "verification_status", "account_type"],
+  "required": [
+    "id",
+    "username",
+    "verification_status",
+    "account_type"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -23,7 +28,10 @@
       "description": "Unique username"
     },
     "full_name": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 100,
       "description": "User's full name"
     },
@@ -33,28 +41,49 @@
       "description": "User's email address"
     },
     "avatar_url": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "uri",
       "description": "Profile picture URL"
     },
     "bio": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 500,
       "description": "User biography"
     },
     "location": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 100,
       "description": "User location"
     },
     "verification_status": {
       "type": "string",
-      "enum": ["unverified", "email_verified", "phone_verified", "identity_verified", "fully_verified"],
+      "enum": [
+        "unverified",
+        "email_verified",
+        "phone_verified",
+        "identity_verified",
+        "fully_verified"
+      ],
       "description": "User verification level"
     },
     "account_type": {
       "type": "string",
-      "enum": ["basic", "verified", "premium", "store", "admin"],
+      "enum": [
+        "basic",
+        "verified",
+        "premium",
+        "store",
+        "admin"
+      ],
       "description": "Account type and permissions"
     },
     "seller_rating": {
@@ -95,7 +124,12 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["electric", "acoustic", "classical", "bass"]
+            "enum": [
+              "electric",
+              "acoustic",
+              "classical",
+              "bass"
+            ]
           },
           "description": "User's preferred guitar types"
         },
@@ -142,9 +176,21 @@
   "x-ai-context": {
     "entity_type": "user",
     "privacy_level": "protected",
-    "searchable_fields": ["username", "location", "bio"],
-    "recommendation_fields": ["preferences", "seller_rating", "total_sales"],
-    "analysis_fields": ["verification_status", "account_type", "created_at"]
+    "searchable_fields": [
+      "username",
+      "location",
+      "bio"
+    ],
+    "recommendation_fields": [
+      "preferences",
+      "seller_rating",
+      "total_sales"
+    ],
+    "analysis_fields": [
+      "verification_status",
+      "account_type",
+      "created_at"
+    ]
   }
 }
 ```
@@ -157,7 +203,17 @@
   "title": "Guitar Listing",
   "description": "Complete guitar listing schema optimized for AI processing",
   "type": "object",
-  "required": ["id", "title", "description", "brand", "guitar_type", "condition", "price", "seller_id", "status"],
+  "required": [
+    "id",
+    "title",
+    "description",
+    "brand",
+    "guitar_type",
+    "condition",
+    "price",
+    "seller_id",
+    "status"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -177,45 +233,85 @@
       "description": "Detailed description of the guitar"
     },
     "slug": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
       "description": "URL-friendly slug"
     },
     "brand": {
       "type": "string",
       "enum": [
-        "Fender", "Gibson", "Martin", "Taylor", "Ibanez", "ESP", "Yamaha",
-        "PRS", "Rickenbacker", "Gretsch", "Epiphone", "Squier", "Jackson",
-        "Schecter", "Washburn", "Dean", "BC Rich", "Charvel", "Kramer", "Other"
+        "Fender",
+        "Gibson",
+        "Martin",
+        "Taylor",
+        "Ibanez",
+        "ESP",
+        "Yamaha",
+        "PRS",
+        "Rickenbacker",
+        "Gretsch",
+        "Epiphone",
+        "Squier",
+        "Jackson",
+        "Schecter",
+        "Washburn",
+        "Dean",
+        "BC Rich",
+        "Charvel",
+        "Kramer",
+        "Other"
       ],
       "description": "Guitar manufacturer brand"
     },
     "model": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 100,
       "description": "Specific guitar model"
     },
     "series": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 100,
       "description": "Guitar series or line"
     },
     "year": {
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 1900,
       "maximum": 2030,
       "description": "Year of manufacture"
     },
     "country_of_origin": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 100,
       "description": "Country where guitar was manufactured"
     },
     "guitar_type": {
       "type": "string",
       "enum": [
-        "electric", "acoustic", "classical", "bass", "hollow_body",
-        "semi_hollow", "twelve_string", "baritone", "travel", "resonator"
+        "electric",
+        "acoustic",
+        "classical",
+        "bass",
+        "hollow_body",
+        "semi_hollow",
+        "twelve_string",
+        "baritone",
+        "travel",
+        "resonator"
       ],
       "description": "Type of guitar"
     },
@@ -223,45 +319,75 @@
       "type": "object",
       "properties": {
         "body_type": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Body shape and type"
         },
         "body_material": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Primary body wood material"
         },
         "neck_material": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Neck wood material"
         },
         "fretboard_material": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Fretboard wood material"
         },
         "number_of_frets": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 12,
           "maximum": 36,
           "description": "Total number of frets"
         },
         "scale_length": {
-          "type": ["number", "null"],
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "Scale length in inches"
         },
         "pickup_configuration": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Pickup layout (e.g., HSS, HH, SSS)"
         },
         "electronics": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Electronic components and features"
         },
         "hardware": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Hardware components (bridge, tuners, etc.)"
         },
         "finish": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Guitar finish type and color"
         }
       },
@@ -269,11 +395,22 @@
     },
     "condition": {
       "type": "string",
-      "enum": ["mint", "excellent", "very_good", "good", "fair", "poor", "for_parts"],
+      "enum": [
+        "mint",
+        "excellent",
+        "very_good",
+        "good",
+        "fair",
+        "poor",
+        "for_parts"
+      ],
       "description": "Overall condition of the guitar"
     },
     "condition_notes": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 500,
       "description": "Detailed condition description"
     },
@@ -285,7 +422,10 @@
       "description": "Asking price in EUR"
     },
     "original_price": {
-      "type": ["number", "null"],
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0,
       "description": "Original retail price when new"
     },
@@ -326,12 +466,17 @@
           "description": "Array of document URLs (certificates, manuals)"
         }
       },
-      "required": ["images"],
+      "required": [
+        "images"
+      ],
       "description": "Media files associated with listing"
     },
     "location": {
       "type": "object",
-      "required": ["city", "country"],
+      "required": [
+        "city",
+        "country"
+      ],
       "properties": {
         "city": {
           "type": "string",
@@ -339,7 +484,10 @@
           "description": "City where guitar is located"
         },
         "state": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "maxLength": 100,
           "description": "State or region"
         },
@@ -349,7 +497,10 @@
           "description": "Country code (ISO 3166-1 alpha-2)"
         },
         "postal_code": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Postal code for shipping calculations"
         }
       },
@@ -364,7 +515,10 @@
           "description": "Whether shipping is available"
         },
         "cost": {
-          "type": ["number", "null"],
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 500,
           "description": "Shipping cost in EUR"
@@ -373,7 +527,12 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["standard", "express", "registered", "insured"]
+            "enum": [
+              "standard",
+              "express",
+              "registered",
+              "insured"
+            ]
           },
           "description": "Available shipping methods"
         }
@@ -413,7 +572,15 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "active", "pending", "sold", "expired", "removed", "reported"],
+      "enum": [
+        "draft",
+        "active",
+        "pending",
+        "sold",
+        "expired",
+        "removed",
+        "reported"
+      ],
       "description": "Current listing status"
     },
     "featured": {
@@ -422,7 +589,10 @@
       "description": "Whether listing is featured/promoted"
     },
     "boost_expires_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When promotional boost expires"
     },
@@ -453,7 +623,10 @@
       "description": "Listing performance metrics"
     },
     "search_vector": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Full-text search vector (PostgreSQL tsvector)"
     },
     "created_at": {
@@ -467,17 +640,26 @@
       "description": "When listing was last updated"
     },
     "published_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When listing was published"
     },
     "sold_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When listing was marked as sold"
     },
     "expires_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When listing expires"
     }
@@ -487,18 +669,492 @@
     "entity_type": "listing",
     "privacy_level": "public",
     "searchable_fields": [
-      "title", "description", "brand", "model", "guitar_type", 
-      "condition", "tags", "location.city"
+      "title",
+      "description",
+      "brand",
+      "model",
+      "guitar_type",
+      "condition",
+      "tags",
+      "location.city"
     ],
     "recommendation_fields": [
-      "brand", "model", "guitar_type", "price", "condition", 
-      "specifications", "year"
+      "brand",
+      "model",
+      "guitar_type",
+      "price",
+      "condition",
+      "specifications",
+      "year"
     ],
     "analysis_fields": [
-      "price", "condition", "metrics", "created_at", "location"
+      "price",
+      "condition",
+      "metrics",
+      "created_at",
+      "location"
     ],
     "moderation_fields": [
-      "title", "description", "condition_notes"
+      "title",
+      "description",
+      "condition_notes"
+    ]
+  }
+}
+```
+
+### Amp Listing Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/amp-listing.json",
+  "title": "Amp Listing",
+  "description": "Complete amplifier listing schema optimized for AI processing",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "description",
+    "brand",
+    "amp_type",
+    "condition",
+    "price",
+    "seller_id",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique listing identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 100,
+      "description": "Listing title for display and search"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 50,
+      "maxLength": 2000,
+      "description": "Detailed description of the amplifier"
+    },
+    "brand": {
+      "type": "string",
+      "enum": [
+        "Marshall",
+        "Fender",
+        "Vox",
+        "Orange",
+        "Mesa Boogie",
+        "Peavey",
+        "Laney",
+        "Blackstar",
+        "Boss",
+        "Roland",
+        "Line 6",
+        "Hughes & Kettner",
+        "Engl",
+        "Diezel",
+        "Bogner",
+        "Other"
+      ],
+      "description": "Amplifier manufacturer brand"
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100,
+      "description": "Specific amplifier model"
+    },
+    "amp_type": {
+      "type": "string",
+      "enum": [
+        "tube",
+        "solid_state",
+        "hybrid",
+        "modeling",
+        "combo",
+        "head",
+        "cabinet"
+      ],
+      "description": "Type of amplifier"
+    },
+    "wattage": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Amplifier wattage"
+    },
+    "speaker_config": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 50,
+      "description": "Speaker configuration (e.g., 1x12, 2x12, 4x10)"
+    },
+    "channels": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 1,
+      "description": "Number of channels"
+    },
+    "effects_loop": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether amplifier has effects loop"
+    },
+    "reverb": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether amplifier has built-in reverb"
+    },
+    "headphone_out": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether amplifier has headphone output"
+    },
+    "specifications": {
+      "type": "object",
+      "properties": {
+        "tubes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Tube configuration"
+        },
+        "speakers": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Speaker details"
+        },
+        "controls": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Control layout"
+        },
+        "inputs": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Input configuration"
+        },
+        "outputs": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Output configuration"
+        }
+      },
+      "description": "Detailed technical specifications"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "mint",
+        "excellent",
+        "very_good",
+        "good",
+        "fair",
+        "poor",
+        "for_parts"
+      ],
+      "description": "Overall condition of the amplifier"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 50000,
+      "multipleOf": 0.01,
+      "description": "Asking price in EUR"
+    },
+    "seller_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the user who created the listing"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "pending",
+        "sold",
+        "expired",
+        "removed",
+        "reported"
+      ],
+      "description": "Current listing status"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "listing",
+    "privacy_level": "public",
+    "searchable_fields": [
+      "title",
+      "description",
+      "brand",
+      "model",
+      "amp_type",
+      "condition",
+      "tags",
+      "location.city"
+    ],
+    "recommendation_fields": [
+      "brand",
+      "model",
+      "amp_type",
+      "price",
+      "condition",
+      "specifications",
+      "wattage"
+    ],
+    "analysis_fields": [
+      "price",
+      "condition",
+      "metrics",
+      "created_at",
+      "location"
+    ]
+  }
+}
+```
+
+### Effect Listing Schema
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.guitar-marketplace.de/schemas/effect-listing.json",
+  "title": "Effect Listing",
+  "description": "Complete effects pedal listing schema optimized for AI processing",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "description",
+    "brand",
+    "effect_type",
+    "condition",
+    "price",
+    "seller_id",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique listing identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 100,
+      "description": "Listing title for display and search"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 50,
+      "maxLength": 2000,
+      "description": "Detailed description of the effects pedal"
+    },
+    "brand": {
+      "type": "string",
+      "enum": [
+        "Boss",
+        "TC Electronic",
+        "Strymon",
+        "Eventide",
+        "Line 6",
+        "Electro-Harmonix",
+        "MXR",
+        "Dunlop",
+        "DigiTech",
+        "Zoom",
+        "Behringer",
+        "Donner",
+        "Joyo",
+        "Mooer",
+        "Hotone",
+        "Other"
+      ],
+      "description": "Effects pedal manufacturer brand"
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100,
+      "description": "Specific effects pedal model"
+    },
+    "effect_type": {
+      "type": "string",
+      "enum": [
+        "distortion",
+        "overdrive",
+        "fuzz",
+        "boost",
+        "compressor",
+        "eq",
+        "delay",
+        "reverb",
+        "chorus",
+        "flanger",
+        "phaser",
+        "tremolo",
+        "wah",
+        "pitch_shifter",
+        "harmonizer",
+        "looper",
+        "multi_effect"
+      ],
+      "description": "Type of effects pedal"
+    },
+    "true_bypass": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pedal has true bypass"
+    },
+    "power_supply": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 50,
+      "description": "Power supply requirements (e.g., 9V DC, Battery, 18V DC)"
+    },
+    "stereo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pedal supports stereo"
+    },
+    "midi": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pedal has MIDI support"
+    },
+    "expression_pedal": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pedal has expression pedal input"
+    },
+    "specifications": {
+      "type": "object",
+      "properties": {
+        "algorithms": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Effect algorithms used"
+        },
+        "controls": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Control layout"
+        },
+        "presets": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Preset capabilities"
+        },
+        "midi_implementation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "MIDI implementation details"
+        }
+      },
+      "description": "Detailed technical specifications"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "mint",
+        "excellent",
+        "very_good",
+        "good",
+        "fair",
+        "poor",
+        "for_parts"
+      ],
+      "description": "Overall condition of the effects pedal"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 50000,
+      "multipleOf": 0.01,
+      "description": "Asking price in EUR"
+    },
+    "seller_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID of the user who created the listing"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "pending",
+        "sold",
+        "expired",
+        "removed",
+        "reported"
+      ],
+      "description": "Current listing status"
+    }
+  },
+  "additionalProperties": false,
+  "x-ai-context": {
+    "entity_type": "listing",
+    "privacy_level": "public",
+    "searchable_fields": [
+      "title",
+      "description",
+      "brand",
+      "model",
+      "effect_type",
+      "condition",
+      "tags",
+      "location.city"
+    ],
+    "recommendation_fields": [
+      "brand",
+      "model",
+      "effect_type",
+      "price",
+      "condition",
+      "specifications"
+    ],
+    "analysis_fields": [
+      "price",
+      "condition",
+      "metrics",
+      "created_at",
+      "location"
     ]
   }
 }
@@ -512,7 +1168,13 @@
   "title": "Message",
   "description": "Message schema for conversations between users",
   "type": "object",
-  "required": ["id", "conversation_id", "sender_id", "content", "message_type"],
+  "required": [
+    "id",
+    "conversation_id",
+    "sender_id",
+    "content",
+    "message_type"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -537,7 +1199,12 @@
     },
     "message_type": {
       "type": "string",
-      "enum": ["text", "image", "offer", "system"],
+      "enum": [
+        "text",
+        "image",
+        "offer",
+        "system"
+      ],
       "description": "Type of message"
     },
     "attachments": {
@@ -550,7 +1217,10 @@
       "description": "Attached files or images"
     },
     "offer_details": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
         "amount": {
           "type": "number",
@@ -564,14 +1234,22 @@
         },
         "status": {
           "type": "string",
-          "enum": ["pending", "accepted", "declined", "expired"],
+          "enum": [
+            "pending",
+            "accepted",
+            "declined",
+            "expired"
+          ],
           "description": "Offer status"
         }
       },
       "description": "Details for offer-type messages"
     },
     "read_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When message was read by recipient"
     },
@@ -585,9 +1263,16 @@
   "x-ai-context": {
     "entity_type": "message",
     "privacy_level": "private",
-    "searchable_fields": ["content"],
-    "moderation_fields": ["content"],
-    "analysis_fields": ["message_type", "created_at"]
+    "searchable_fields": [
+      "content"
+    ],
+    "moderation_fields": [
+      "content"
+    ],
+    "analysis_fields": [
+      "message_type",
+      "created_at"
+    ]
   }
 }
 ```
@@ -600,7 +1285,14 @@
   "title": "Transaction",
   "description": "Transaction schema for guitar sales",
   "type": "object",
-  "required": ["id", "listing_id", "buyer_id", "seller_id", "amount", "status"],
+  "required": [
+    "id",
+    "listing_id",
+    "buyer_id",
+    "seller_id",
+    "amount",
+    "status"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -631,39 +1323,69 @@
     "currency": {
       "type": "string",
       "default": "EUR",
-      "enum": ["EUR", "USD"],
+      "enum": [
+        "EUR",
+        "USD"
+      ],
       "description": "Transaction currency"
     },
     "payment_method": {
-      "type": ["string", "null"],
-      "enum": ["sepa", "paypal", "stripe", "klarna", "bank_transfer"],
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "sepa",
+        "paypal",
+        "stripe",
+        "klarna",
+        "bank_transfer"
+      ],
       "description": "Payment method used"
     },
     "payment_intent_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "External payment provider transaction ID"
     },
     "status": {
       "type": "string",
       "enum": [
-        "pending", "paid", "shipped", "delivered", 
-        "completed", "cancelled", "disputed", "refunded"
+        "pending",
+        "paid",
+        "shipped",
+        "delivered",
+        "completed",
+        "cancelled",
+        "disputed",
+        "refunded"
       ],
       "description": "Current transaction status"
     },
     "shipping": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
         "method": {
           "type": "string",
           "description": "Shipping method"
         },
         "tracking_number": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Shipping tracking number"
         },
         "carrier": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Shipping carrier"
         },
         "cost": {
@@ -672,7 +1394,10 @@
           "description": "Shipping cost in EUR"
         },
         "estimated_delivery": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date",
           "description": "Estimated delivery date"
         }
@@ -688,7 +1413,10 @@
           "description": "Whether escrow service is used"
         },
         "released_at": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "When escrow funds were released"
         }
@@ -722,27 +1450,42 @@
       "description": "When transaction was created"
     },
     "paid_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When payment was completed"
     },
     "shipped_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When item was shipped"
     },
     "delivered_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When item was delivered"
     },
     "completed_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When transaction was completed"
     },
     "cancelled_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time",
       "description": "When transaction was cancelled"
     }
@@ -752,7 +1495,11 @@
     "entity_type": "transaction",
     "privacy_level": "restricted",
     "analysis_fields": [
-      "amount", "status", "payment_method", "created_at", "fees"
+      "amount",
+      "status",
+      "payment_method",
+      "created_at",
+      "fees"
     ]
   }
 }

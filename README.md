@@ -10,9 +10,10 @@ RESONANT ist eine moderne Marketplace-Plattform, speziell entwickelt für die de
 
 - ✅ **Authentifizierung & Verifizierung** - Sicheres Auth-System mit Email-Verifikation
 - ✅ **User Profile** - Detaillierte Profile mit Bewertungen und Statistiken
-- 🚧 **Listings** - Guitar-spezifische Anzeigen (In Entwicklung)
+- ✅ **Multi-Kategorie Listings** - Gitarren, Amps & Effekte mit spezifischen Feldern
+- ✅ **Image Upload & Compression** - Optimierte Bildverarbeitung mit ImageKit
+- ✅ **Search & Filters** - Erweiterte Suchfunktionen mit Kategorie-Filtern
 - 🚧 **Messaging** - Sicheres Nachrichtensystem (In Entwicklung)
-- 🚧 **Search & Filters** - Erweiterte Suchfunktionen (In Entwicklung)
 
 ## 🛠 Tech Stack
 
@@ -123,11 +124,13 @@ src/
 - [x] Profile Management
 - [x] Verification System
 
-### Phase 2: Listings (In Arbeit)
-- [ ] Create Listings
-- [ ] Browse Listings
-- [ ] Search & Filters
-- [ ] Favorites
+### Phase 2: Listings ✅
+- [x] Multi-Category Listings (Gitarren, Amps, Effekte)
+- [x] Create Listings with Category-Specific Fields
+- [x] Browse Listings with Advanced Filters
+- [x] Image Upload & Compression
+- [x] Search & Filters
+- [ ] Favorites System
 
 ### Phase 3: Communication
 - [ ] Messaging System

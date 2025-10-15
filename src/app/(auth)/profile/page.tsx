@@ -26,7 +26,7 @@ export default async function ProfilePage() {
         // We avoid next/navigation redirect in server component here to keep it simple.
         return (
             <div className="container py-12">
-                <a href="/" className="underline">Zur Startseite</a>
+                <Link href="/" className="underline">Zur Startseite</Link>
             </div>
         );
     }

@@ -26,11 +26,34 @@ export const VERIFICATION_STATUS = {
 export type VerificationStatus =
   (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
 
+// Listing Categories
+export const LISTING_CATEGORIES = {
+  GUITARS: 'guitars',
+  AMPS: 'amps',
+  EFFECTS: 'effects',
+} as const;
+
+export type ListingCategory = (typeof LISTING_CATEGORIES)[keyof typeof LISTING_CATEGORIES];
+
 // Guitar Brands (Tier Classification)
 export const GUITAR_BRANDS = {
   TIER_1: ['Fender', 'Gibson', 'Martin', 'Taylor'],
   TIER_2: ['Ibanez', 'ESP', 'Yamaha', 'PRS'],
   TIER_3: ['Epiphone', 'Squier', 'Jackson', 'Schecter'],
+} as const;
+
+// Amp Brands
+export const AMP_BRANDS = {
+  TIER_1: ['Marshall', 'Fender', 'Vox', 'Orange', 'Mesa Boogie'],
+  TIER_2: ['Peavey', 'Laney', 'Blackstar', 'Boss', 'Roland'],
+  TIER_3: ['Line 6', 'Hughes & Kettner', 'Engl', 'Diezel', 'Bogner'],
+} as const;
+
+// Effect Brands
+export const EFFECT_BRANDS = {
+  TIER_1: ['Boss', 'TC Electronic', 'Strymon', 'Eventide', 'Line 6'],
+  TIER_2: ['Electro-Harmonix', 'MXR', 'Dunlop', 'DigiTech', 'Zoom'],
+  TIER_3: ['Behringer', 'Donner', 'Joyo', 'Mooer', 'Hotone'],
 } as const;
 
 // Guitar Types
@@ -48,6 +71,42 @@ export const GUITAR_TYPES = {
 } as const;
 
 export type GuitarType = (typeof GUITAR_TYPES)[keyof typeof GUITAR_TYPES];
+
+// Amp Types
+export const AMP_TYPES = {
+  TUBE: 'tube',
+  SOLID_STATE: 'solid_state',
+  HYBRID: 'hybrid',
+  MODELING: 'modeling',
+  COMBO: 'combo',
+  HEAD: 'head',
+  CABINET: 'cabinet',
+} as const;
+
+export type AmpType = (typeof AMP_TYPES)[keyof typeof AMP_TYPES];
+
+// Effect Types
+export const EFFECT_TYPES = {
+  DISTORTION: 'distortion',
+  OVERDRIVE: 'overdrive',
+  FUZZ: 'fuzz',
+  BOOST: 'boost',
+  COMPRESSOR: 'compressor',
+  EQ: 'eq',
+  DELAY: 'delay',
+  REVERB: 'reverb',
+  CHORUS: 'chorus',
+  FLANGER: 'flanger',
+  PHASER: 'phaser',
+  TREMOLO: 'tremolo',
+  WAH: 'wah',
+  PITCH_SHIFTER: 'pitch_shifter',
+  HARMONIZER: 'harmonizer',
+  LOOPER: 'looper',
+  MULTI_EFFECT: 'multi_effect',
+} as const;
+
+export type EffectType = (typeof EFFECT_TYPES)[keyof typeof EFFECT_TYPES];
 
 // Condition Hierarchy
 export const CONDITIONS = {

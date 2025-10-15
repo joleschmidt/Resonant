@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Profile } from '@/types';
 import { ProfileEditForm } from '@/components/features/profile/ProfileEditForm';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export default async function ProfileEditPage() {
     if (!user) {
         return (
             <div className="container py-12">
-                <a href="/" className="underline">Zur Startseite</a>
+                <Link href="/" className="underline">Zur Startseite</Link>
             </div>
         );
     }
