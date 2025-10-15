@@ -549,10 +549,26 @@ export default function ListingDetailPage() {
                             <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                             <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
                         </div>
-                        <div className="flex-1 flex items-center justify-center select-none">
-                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i > 0 ? i - 1 : (listing.images?.length || 1) - 1))}>‹</button>
-                            <img src={listing.images?.[currentImageIndex] || mainImage!} alt={listing.title} className="max-w-[90vw] max-height-[80vh] object-contain" />
-                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length || 1) - 1 ? i + 1 : 0))}>›</button>
+                        <div className="relative flex-1 flex items-center justify-center select-none overflow-hidden">
+                            <img
+                                src={listing.images?.[currentImageIndex] || mainImage!}
+                                alt={listing.title}
+                                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
+                            />
+                            <button
+                                className="absolute left-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-black/50 text-white hover:bg-black/70"
+                                onClick={() => setCurrentImageIndex(i => (i > 0 ? i - 1 : (listing.images?.length || 1) - 1))}
+                                aria-label="Vorheriges Bild"
+                            >
+                                ‹
+                            </button>
+                            <button
+                                className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-black/50 text-white hover:bg-black/70"
+                                onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length || 1) - 1 ? i + 1 : 0))}
+                                aria-label="Nächstes Bild"
+                            >
+                                ›
+                            </button>
                         </div>
                     </div>
                 )}
