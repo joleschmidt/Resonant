@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,7 @@ export default function ListingsPage() {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
 
     // Fetch listings
-    const fetchListings = async (page = 1) => {
+    const fetchListings = useCallback(async (page = 1) => {
         setLoading(true);
         setError(null);
 
@@ -93,7 +93,7 @@ export default function ListingsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
     // Handle search
     const handleSearch = (query: string) => {
@@ -121,7 +121,7 @@ export default function ListingsPage() {
     // Load listings on mount and when filters change
     useEffect(() => {
         fetchListings(1);
-    }, [filters, fetchListings]);
+    }, [fetchListings]);
 
     return (
         <div className="container mx-auto px-4 py-8">

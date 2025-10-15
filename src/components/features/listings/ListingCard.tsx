@@ -35,7 +35,7 @@ export function ListingCard({
     showSeller = true,
     className = ''
 }: ListingCardProps) {
-    const mainImage = listing.images[0];
+    const mainImage = listing.images?.[0];
     const conditionLabel = getConditionLabel(listing.condition);
     const categoryLabel = getCategoryLabel(listing.category);
     const priceFormatted = new Intl.NumberFormat('de-DE', {
@@ -53,7 +53,7 @@ export function ListingCard({
                         {/* Image */}
                         <div className={isGrid ? 'relative' : 'w-32 h-32 flex-shrink-0'}>
                             <img
-                                src={mainImage ? generateThumbnailUrl(mainImage, isGrid ? 300 : 128) : '/placeholder-guitar.jpg'}
+                                src={mainImage ? generateThumbnailUrl(mainImage, isGrid ? 300 : 128) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                 alt={listing.title}
                                 className={`
                   object-cover bg-muted
