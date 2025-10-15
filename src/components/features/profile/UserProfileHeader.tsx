@@ -38,8 +38,8 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
     const hasCover = !!coverUrl;
 
     return (
-        <div className={cn('rounded-xl border overflow-hidden', className)}>
-            <div className="relative h-40 w-full bg-muted sm:h-56">
+        <div className={cn('rounded-t-xl border-b-0 border overflow-hidden', className)}>
+            <div className="relative h-32 w-full bg-muted sm:h-40">
                 {hasCover ? (
                     <>
                         <Image
@@ -58,7 +58,7 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
 
             <div className="px-4 pb-4 sm:px-6">
                 <div className="flex items-end gap-4">
-                    <Avatar className="-mt-10 h-20 w-20 ring-4 ring-background sm:-mt-12 sm:h-24 sm:w-24">
+                    <Avatar className="-mt-8 h-16 w-16 ring-4 ring-background sm:-mt-10 sm:h-20 sm:w-20">
                         <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
                         <AvatarFallback className="text-xl">{initials}</AvatarFallback>
                     </Avatar>
@@ -102,6 +102,34 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
                         {user.bio}
                     </p>
                 )}
+
+                {/* Account Info */}
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg border p-4">
+                        <h3 className="text-sm font-medium text-muted-foreground">Account-Typ</h3>
+                        <p className="text-lg font-semibold capitalize">{user.account_type}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {user.account_type === 'basic' && 'Upgrade für mehr Funktionen'}
+                            {user.account_type === 'verified' && 'Bis zu 5 aktive Anzeigen'}
+                            {user.account_type === 'premium' && 'Bis zu 20 aktive Anzeigen + Analytics'}
+                            {user.account_type === 'store' && 'Bis zu 100 Anzeigen + Custom Branding'}
+                        </p>
+                    </div>
+
+                    <div className="rounded-lg border p-4">
+                        <h3 className="text-sm font-medium text-muted-foreground">Verifizierung</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {user.verification_status === 'unverified' &&
+                                'Verifiziere deine E-Mail, um alle Funktionen freizuschalten.'}
+                            {user.verification_status === 'email_verified' &&
+                                'E-Mail verifiziert. Verifiziere deine Telefonnummer für mehr Vertrauen.'}
+                            {user.verification_status === 'phone_verified' &&
+                                'E-Mail und Telefon verifiziert.'}
+                            {user.verification_status === 'fully_verified' &&
+                                'Vollständig verifiziert! Du genießt maximales Vertrauen.'}
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

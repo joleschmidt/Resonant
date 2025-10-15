@@ -25,7 +25,7 @@ export function UserStatsStrip({ rating = 0, sales = 0, purchases = 0, followers
     ];
 
     return (
-        <Card className="flex divide-x overflow-hidden">
+        <Card className="flex divide-x overflow-hidden rounded-b-xl rounded-t-none border-t-0">
             {items.map((it, idx) => (
                 <div key={it.label} className="flex flex-1 items-center gap-3 p-4">
                     <it.icon className="h-5 w-5 text-muted-foreground" />
