@@ -40,8 +40,94 @@ export default function CreateListingPage() {
         setCurrentStep(2); // Details step comes after category selection
     };
 
+    const isStepValid = () => {
+        switch (currentStep) {
+            case 1:
+                return selectedCategory !== '';
+            case 2:
+                // Details step - check category-specific required fields
+                if (selectedCategory === LISTING_CATEGORIES.GUITARS) {
+                    const hasRequiredFields = formData.guitar_details?.brand &&
+                        formData.guitar_details?.model &&
+                        formData.guitar_details?.guitar_type &&
+                        formData.condition;
+
+                    // If relic is checked, relic_level must be selected
+                    const relicValid = !formData.guitar_details?.has_relic || formData.guitar_details?.relic_level;
+
+                    return hasRequiredFields && relicValid;
+                } else if (selectedCategory === LISTING_CATEGORIES.AMPS) {
+                    return formData.amp_details?.brand &&
+                        formData.amp_details?.model &&
+                        formData.amp_details?.amp_type;
+                } else if (selectedCategory === LISTING_CATEGORIES.EFFECTS) {
+                    return formData.effect_details?.brand &&
+                        formData.effect_details?.model &&
+                        formData.effect_details?.effect_type;
+                }
+                return false;
+            case 3:
+                // Grunddaten step
+                return formData.title &&
+                    formData.description &&
+                    formData.price &&
+                    formData.price > 0;
+            case 4:
+                // Bilder step
+                return images.length > 0;
+            case 5:
+                // Ort & Versand step
+                return formData.location_city &&
+                    (formData.shipping_available || formData.pickup_available);
+            default:
+                return true;
+        }
+    };
+
     const handleNext = () => {
-        if (currentStep < 6) {
+        if (currentStep < 6 && isStepValid()) {
+            // Auto-fill title when moving to step 3 (Grunddaten)
+            if (currentStep === 2) {
+                let suggestedTitle = '';
+
+                if (selectedCategory === LISTING_CATEGORIES.GUITARS && formData.guitar_details) {
+                    const { brand, model, color, relic_level } = formData.guitar_details;
+                    let relicText = '';
+                    if (relic_level) {
+                        switch (relic_level) {
+                            case 'nos':
+                                relicText = 'NOS';
+                                break;
+                            case 'closet_classic':
+                                relicText = 'Closet Classic';
+                                break;
+                            case 'journeyman':
+                                relicText = 'Journeyman Relic';
+                                break;
+                            case 'relic':
+                                relicText = 'Relic';
+                                break;
+                            case 'heavy_relic':
+                                relicText = 'Heavy Relic';
+                                break;
+                            default:
+                                relicText = relic_level;
+                        }
+                    }
+                    suggestedTitle = [brand, model, relicText, color].filter(Boolean).join(' ');
+                } else if (selectedCategory === LISTING_CATEGORIES.AMPS && formData.amp_details) {
+                    const { brand, model, color } = formData.amp_details;
+                    suggestedTitle = [brand, model, color].filter(Boolean).join(' ');
+                } else if (selectedCategory === LISTING_CATEGORIES.EFFECTS && formData.effect_details) {
+                    const { brand, model, color } = formData.effect_details;
+                    suggestedTitle = [brand, model, color].filter(Boolean).join(' ');
+                }
+
+                if (suggestedTitle && !formData.title) {
+                    setFormData(prev => ({ ...prev, title: suggestedTitle }));
+                }
+            }
+
             setCurrentStep(currentStep + 1);
         }
     };
@@ -133,7 +219,10 @@ export default function CreateListingPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Card
-                                className="cursor-pointer hover:shadow-lg transition-shadow"
+                                className={`cursor-pointer hover:shadow-lg transition-all ${selectedCategory === LISTING_CATEGORIES.GUITARS
+                                    ? 'ring-2 ring-primary bg-primary/5 border-primary'
+                                    : 'hover:shadow-lg'
+                                    }`}
                                 onClick={() => handleCategorySelect(LISTING_CATEGORIES.GUITARS)}
                             >
                                 <CardContent className="p-6 text-center">
@@ -142,11 +231,19 @@ export default function CreateListingPage() {
                                     <p className="text-sm text-muted-foreground">
                                         E-Gitarren, Akustikgitarren, Bass, Klassik
                                     </p>
+                                    {selectedCategory === LISTING_CATEGORIES.GUITARS && (
+                                        <div className="mt-2 text-primary font-medium text-sm">
+                                            ✓ Ausgewählt
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
                             <Card
-                                className="cursor-pointer hover:shadow-lg transition-shadow"
+                                className={`cursor-pointer hover:shadow-lg transition-all ${selectedCategory === LISTING_CATEGORIES.AMPS
+                                    ? 'ring-2 ring-primary bg-primary/5 border-primary'
+                                    : 'hover:shadow-lg'
+                                    }`}
                                 onClick={() => handleCategorySelect(LISTING_CATEGORIES.AMPS)}
                             >
                                 <CardContent className="p-6 text-center">
@@ -155,11 +252,19 @@ export default function CreateListingPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Röhrenamps, Transistoramps, Combo, Head, Cabinet
                                     </p>
+                                    {selectedCategory === LISTING_CATEGORIES.AMPS && (
+                                        <div className="mt-2 text-primary font-medium text-sm">
+                                            ✓ Ausgewählt
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
                             <Card
-                                className="cursor-pointer hover:shadow-lg transition-shadow"
+                                className={`cursor-pointer hover:shadow-lg transition-all ${selectedCategory === LISTING_CATEGORIES.EFFECTS
+                                    ? 'ring-2 ring-primary bg-primary/5 border-primary'
+                                    : 'hover:shadow-lg'
+                                    }`}
                                 onClick={() => handleCategorySelect(LISTING_CATEGORIES.EFFECTS)}
                             >
                                 <CardContent className="p-6 text-center">
@@ -168,6 +273,11 @@ export default function CreateListingPage() {
                                     <p className="text-sm text-muted-foreground">
                                         Verzerrer, Delay, Reverb, Modulation, Multi-Effekte
                                     </p>
+                                    {selectedCategory === LISTING_CATEGORIES.EFFECTS && (
+                                        <div className="mt-2 text-primary font-medium text-sm">
+                                            ✓ Ausgewählt
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -244,21 +354,81 @@ export default function CreateListingPage() {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium">Baujahr</label>
+                                            <label className="text-sm font-medium">Farbe</label>
                                             <input
-                                                type="number"
-                                                placeholder="1995"
+                                                type="text"
+                                                placeholder="z.B. Sunburst, Schwarz, Weiß"
                                                 className="w-full mt-1 p-3 border rounded-lg"
-                                                value={formData.guitar_details?.year || ''}
+                                                value={formData.guitar_details?.color || ''}
                                                 onChange={(e) => setFormData(prev => ({
                                                     ...prev,
                                                     guitar_details: {
                                                         ...prev.guitar_details,
-                                                        year: parseInt(e.target.value) || undefined
+                                                        color: e.target.value
                                                     }
                                                 }))}
                                             />
+
+                                            <div className="mt-4 space-y-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="relic"
+                                                        checked={formData.guitar_details?.has_relic || false}
+                                                        onChange={(e) => setFormData(prev => ({
+                                                            ...prev,
+                                                            guitar_details: {
+                                                                ...prev.guitar_details,
+                                                                has_relic: e.target.checked,
+                                                                relic_level: e.target.checked ? prev.guitar_details?.relic_level : undefined
+                                                            }
+                                                        }))}
+                                                    />
+                                                    <label htmlFor="relic" className="text-sm font-medium">Relic (Vintage-Aging)</label>
+                                                </div>
+
+                                                {formData.guitar_details?.has_relic && (
+                                                    <div>
+                                                        <label className="text-sm font-medium">Relic-Stufe *</label>
+                                                        <select
+                                                            className="w-full mt-1 p-3 border rounded-lg"
+                                                            value={formData.guitar_details?.relic_level || ''}
+                                                            onChange={(e) => setFormData(prev => ({
+                                                                ...prev,
+                                                                guitar_details: {
+                                                                    ...prev.guitar_details,
+                                                                    relic_level: e.target.value
+                                                                }
+                                                            }))}
+                                                        >
+                                                            <option value="">Wähle eine Relic-Stufe</option>
+                                                            <option value="nos">NOS (New Old Stock)</option>
+                                                            <option value="closet_classic">Closet Classic</option>
+                                                            <option value="journeyman">Journeyman Relic</option>
+                                                            <option value="relic">Relic</option>
+                                                            <option value="heavy_relic">Heavy Relic / Super Heavy Relic</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium">Baujahr</label>
+                                        <input
+                                            type="number"
+                                            placeholder="1995"
+                                            className="w-full mt-1 p-3 border rounded-lg"
+                                            value={formData.guitar_details?.year || ''}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                guitar_details: {
+                                                    ...prev.guitar_details,
+                                                    year: parseInt(e.target.value) || undefined
+                                                }
+                                            }))}
+                                        />
                                     </div>
 
                                     <div>
@@ -338,6 +508,25 @@ export default function CreateListingPage() {
                                             </select>
                                         </div>
                                         <div>
+                                            <label className="text-sm font-medium">Farbe</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Schwarz, Braun, Weiß"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.amp_details?.color || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    amp_details: {
+                                                        ...prev.amp_details,
+                                                        color: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
                                             <label className="text-sm font-medium">Leistung (Watt)</label>
                                             <input
                                                 type="number"
@@ -352,6 +541,9 @@ export default function CreateListingPage() {
                                                     }
                                                 }))}
                                             />
+                                        </div>
+                                        <div>
+                                            {/* Empty div for grid layout */}
                                         </div>
                                     </div>
                                 </div>
@@ -394,27 +586,45 @@ export default function CreateListingPage() {
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-sm font-medium">Effekttyp *</label>
-                                        <select
-                                            className="w-full mt-1 p-3 border rounded-lg"
-                                            value={formData.effect_details?.effect_type || ''}
-                                            onChange={(e) => setFormData(prev => ({
-                                                ...prev,
-                                                effect_details: {
-                                                    ...prev.effect_details,
-                                                    effect_type: e.target.value
-                                                }
-                                            }))}
-                                        >
-                                            <option value="">Wähle einen Typ</option>
-                                            <option value="distortion">Verzerrer</option>
-                                            <option value="overdrive">Overdrive</option>
-                                            <option value="delay">Delay</option>
-                                            <option value="reverb">Reverb</option>
-                                            <option value="modulation">Modulation</option>
-                                            <option value="multi">Multi-Effekt</option>
-                                        </select>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Effekttyp *</label>
+                                            <select
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.effect_details?.effect_type || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    effect_details: {
+                                                        ...prev.effect_details,
+                                                        effect_type: e.target.value
+                                                    }
+                                                }))}
+                                            >
+                                                <option value="">Wähle einen Typ</option>
+                                                <option value="distortion">Verzerrer</option>
+                                                <option value="overdrive">Overdrive</option>
+                                                <option value="delay">Delay</option>
+                                                <option value="reverb">Reverb</option>
+                                                <option value="modulation">Modulation</option>
+                                                <option value="multi">Multi-Effekt</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Farbe</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Schwarz, Orange, Gelb"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.effect_details?.color || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    effect_details: {
+                                                        ...prev.effect_details,
+                                                        color: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -700,28 +910,45 @@ export default function CreateListingPage() {
             </Card>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8">
-                <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentStep === 1}
-                >
-                    Zurück
-                </Button>
+            {currentStep > 1 && (
+                <div className="flex items-center justify-between mt-8">
+                    <Button
+                        variant="outline"
+                        onClick={handlePrevious}
+                    >
+                        Zurück
+                    </Button>
 
-                <div className="flex gap-2">
-                    {currentStep < 6 ? (
-                        <Button onClick={handleNext}>
-                            Weiter
-                        </Button>
-                    ) : (
-                        <Button onClick={handlePublish} disabled={loading} className="flex items-center gap-2">
-                            <Send className="h-4 w-4" />
-                            {loading ? 'Wird veröffentlicht...' : 'Veröffentlichen'}
-                        </Button>
-                    )}
+                    <div className="flex gap-2">
+                        {currentStep < 6 ? (
+                            <Button
+                                onClick={handleNext}
+                                disabled={!isStepValid()}
+                            >
+                                Weiter
+                            </Button>
+                        ) : (
+                            <Button onClick={handlePublish} disabled={loading} className="flex items-center gap-2">
+                                <Send className="h-4 w-4" />
+                                {loading ? 'Wird veröffentlicht...' : 'Veröffentlichen'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Validation Hints */}
+            {!isStepValid() && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-amber-800 text-sm">
+                        {currentStep === 1 && "Bitte wähle eine Kategorie aus"}
+                        {currentStep === 2 && "Bitte fülle alle Pflichtfelder aus (mit * markiert)"}
+                        {currentStep === 3 && "Bitte fülle Titel, Beschreibung und Preis aus"}
+                        {currentStep === 4 && "Bitte lade mindestens ein Bild hoch"}
+                        {currentStep === 5 && "Bitte gib deinen Standort an und wähle mindestens eine Versandoption"}
+                    </p>
+                </div>
+            )}
 
             {/* Error Display */}
             {errors.submit && (
