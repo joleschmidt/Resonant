@@ -22,7 +22,7 @@ export const baseListingSchema = z.object({
 
     description: z.string()
         .min(50, 'Beschreibung muss mindestens 50 Zeichen lang sein')
-        .max(2000, 'Beschreibung darf maximal 2000 Zeichen lang sein'),
+        .max(5000, 'Beschreibung darf maximal 5000 Zeichen lang sein'),
 
     price: z.number()
         .min(PRICING.MIN_PRICE, `Preis muss mindestens ${PRICING.MIN_PRICE}€ betragen`)
@@ -93,6 +93,16 @@ export const baseListingSchema = z.object({
     )
         .max(10, 'Maximal 10 Tags erlaubt')
         .optional(),
+
+    status: z.enum([
+        LISTING_STATUS.DRAFT,
+        LISTING_STATUS.ACTIVE,
+        LISTING_STATUS.PENDING,
+        LISTING_STATUS.SOLD,
+        LISTING_STATUS.EXPIRED,
+        LISTING_STATUS.REMOVED,
+        LISTING_STATUS.REPORTED
+    ] as const).optional(),
 });
 
 // Guitar-specific schema
@@ -102,8 +112,8 @@ export const guitarDetailsSchema = z.object({
         .max(100, 'Marke darf maximal 100 Zeichen lang sein'),
 
     model: z.string()
-        .max(100, 'Modell darf maximal 100 Zeichen lang sein')
-        .optional(),
+        .min(1, 'Modell ist erforderlich')
+        .max(100, 'Modell darf maximal 100 Zeichen lang sein'),
 
     series: z.string()
         .max(100, 'Serie darf maximal 100 Zeichen lang sein')
@@ -142,8 +152,8 @@ export const ampDetailsSchema = z.object({
         .max(100, 'Marke darf maximal 100 Zeichen lang sein'),
 
     model: z.string()
-        .max(100, 'Modell darf maximal 100 Zeichen lang sein')
-        .optional(),
+        .min(1, 'Modell ist erforderlich')
+        .max(100, 'Modell darf maximal 100 Zeichen lang sein'),
 
     series: z.string()
         .max(100, 'Serie darf maximal 100 Zeichen lang sein')
@@ -201,8 +211,8 @@ export const effectDetailsSchema = z.object({
         .max(100, 'Marke darf maximal 100 Zeichen lang sein'),
 
     model: z.string()
-        .max(100, 'Modell darf maximal 100 Zeichen lang sein')
-        .optional(),
+        .min(1, 'Modell ist erforderlich')
+        .max(100, 'Modell darf maximal 100 Zeichen lang sein'),
 
     series: z.string()
         .max(100, 'Serie darf maximal 100 Zeichen lang sein')
@@ -282,7 +292,7 @@ export const updateListingSchema = z.object({
 
     description: z.string()
         .min(50, 'Beschreibung muss mindestens 50 Zeichen lang sein')
-        .max(2000, 'Beschreibung darf maximal 2000 Zeichen lang sein')
+        .max(5000, 'Beschreibung darf maximal 5000 Zeichen lang sein')
         .optional(),
 
     price: z.number()

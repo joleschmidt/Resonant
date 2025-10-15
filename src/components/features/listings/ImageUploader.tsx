@@ -225,7 +225,7 @@ export function ImageUploader({
             )}
 
             {/* Upload Info */}
-            {!uploading && images.length === 0 && (
+            {images.length === 0 && (
                 <div className="text-sm text-muted-foreground space-y-1">
                     <p>• Mindestens 1 Bild erforderlich, maximal {maxImages} Bilder</p>
                     <p>• Bilder werden automatisch komprimiert und optimiert</p>

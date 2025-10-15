@@ -178,28 +178,99 @@ export default function CreateListingPage() {
                 uploadedImageUrls.push(...(await Promise.all(uploadPromises)));
             }
 
+            // Prepare data for API
+            const listingData = {
+                category: selectedCategory,
+                title: formData.title,
+                description: formData.description,
+                price: formData.price,
+                original_price: formData.original_price,
+                price_negotiable: formData.price_negotiable,
+                condition: formData.condition,
+                condition_notes: formData.condition_notes,
+                location_city: formData.location_city,
+                location_state: formData.location_state,
+                location_postal_code: formData.location_postal_code,
+                shipping_available: formData.shipping_available,
+                shipping_cost: formData.shipping_cost,
+                shipping_methods: formData.shipping_methods,
+                pickup_available: formData.pickup_available,
+                images: uploadedImageUrls,
+                videos: formData.videos || [],
+                case_included: formData.case_included,
+                accessories: formData.accessories || [],
+                tags: formData.tags || [],
+                status: 'active'
+            };
+
+            // Add category-specific details
+            if (selectedCategory === LISTING_CATEGORIES.GUITARS && formData.guitar_details) {
+                Object.assign(listingData, {
+                    brand: formData.guitar_details.brand,
+                    model: formData.guitar_details.model,
+                    series: formData.guitar_details.series,
+                    year: formData.guitar_details.year,
+                    country_of_origin: formData.guitar_details.country_of_origin,
+                    guitar_type: formData.guitar_details.guitar_type,
+                    specifications: formData.guitar_details.specifications || {}
+                });
+            } else if (selectedCategory === LISTING_CATEGORIES.AMPS && formData.amp_details) {
+                Object.assign(listingData, {
+                    brand: formData.amp_details.brand,
+                    model: formData.amp_details.model,
+                    series: formData.amp_details.series,
+                    year: formData.amp_details.year,
+                    country_of_origin: formData.amp_details.country_of_origin,
+                    amp_type: formData.amp_details.amp_type,
+                    wattage: formData.amp_details.wattage,
+                    speaker_config: formData.amp_details.speaker_config,
+                    channels: formData.amp_details.channels,
+                    effects_loop: formData.amp_details.effects_loop,
+                    reverb: formData.amp_details.reverb,
+                    headphone_out: formData.amp_details.headphone_out,
+                    specifications: formData.amp_details.specifications || {}
+                });
+            } else if (selectedCategory === LISTING_CATEGORIES.EFFECTS && formData.effect_details) {
+                Object.assign(listingData, {
+                    brand: formData.effect_details.brand,
+                    model: formData.effect_details.model,
+                    series: formData.effect_details.series,
+                    year: formData.effect_details.year,
+                    country_of_origin: formData.effect_details.country_of_origin,
+                    effect_type: formData.effect_details.effect_type,
+                    true_bypass: formData.effect_details.true_bypass,
+                    power_supply: formData.effect_details.power_supply,
+                    stereo: formData.effect_details.stereo,
+                    midi: formData.effect_details.midi,
+                    expression_pedal: formData.effect_details.expression_pedal,
+                    specifications: formData.effect_details.specifications || {}
+                });
+            }
+
+            // Debug: Log the data being sent
+            console.log('Sending listing data:', listingData);
+
             // Then create the listing
             const response = await fetch('/api/listings/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ...formData,
-                    images: uploadedImageUrls,
-                    status: 'active'
-                }),
+                body: JSON.stringify(listingData),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create listing');
+                const errorData = await response.json();
+                console.error('API Error:', errorData);
+                throw new Error(errorData.error || 'Failed to create listing');
             }
 
             const result = await response.json();
+            console.log('Listing created successfully:', result);
             router.push(`/listings/${result.id}`);
         } catch (error) {
             console.error('Error creating listing:', error);
-            setErrors({ submit: 'Fehler beim Erstellen der Anzeige' });
+            setErrors({ submit: `Fehler beim Erstellen der Anzeige: ${error.message}` });
         } finally {
             setLoading(false);
         }
@@ -803,6 +874,30 @@ export default function CreateListingPage() {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="space-y-4">
+                                    {/* Images Preview */}
+                                    {images.length > 0 && (
+                                        <div>
+                                            <h4 className="text-lg font-semibold mb-3">Bilder ({images.length})</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                {images.map((file, index) => (
+                                                    <div key={index} className="relative group">
+                                                        <div className="aspect-square rounded-lg overflow-hidden bg-muted border">
+                                                            <img
+                                                                src={URL.createObjectURL(file)}
+                                                                alt={`Preview ${index + 1}`}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        </div>
+                                                        {/* Image Number Badge */}
+                                                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                                                            {index + 1}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <h3 className="text-xl font-semibold">{formData.title}</h3>
                                         <p className="text-2xl font-bold text-primary">

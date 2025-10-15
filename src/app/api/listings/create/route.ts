@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
 
         // Parse and validate request body
         const body = await request.json();
+        console.log('Received listing data:', body);
+
         const validatedData = createListingSchema.parse(body);
+        console.log('Validated data:', validatedData);
 
         // Generate slug from title
         const slug = validatedData.title
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
                 case_included: validatedData.case_included,
                 accessories: validatedData.accessories || [],
                 tags: validatedData.tags || [],
-                status: 'draft'
+                status: validatedData.status || 'draft'
             })
             .select('id')
             .single();
@@ -75,7 +78,8 @@ export async function POST(request: NextRequest) {
         if (listingError) {
             console.error('Listing creation error:', listingError);
             return NextResponse.json({
-                error: 'Failed to create listing'
+                error: 'Failed to create listing',
+                details: listingError.message
             }, { status: 500 });
         }
 
@@ -150,7 +154,8 @@ export async function POST(request: NextRequest) {
                 .eq('id', listing.id);
 
             return NextResponse.json({
-                error: 'Failed to create listing details'
+                error: 'Failed to create listing details',
+                details: detailError.message
             }, { status: 500 });
         }
 
