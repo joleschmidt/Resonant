@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useUser } from '@/hooks/auth/useUser';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     MapPin,
     Truck,
@@ -16,7 +20,9 @@ import {
     Star,
     Shield,
     Calendar,
-    Euro
+    Euro,
+    ArrowLeft,
+    ChevronRight
 } from 'lucide-react';
 
 interface ListingDetails {
@@ -97,10 +103,15 @@ const getCategoryLabel = (category: string) => {
 
 export default function ListingDetailPage() {
     const params = useParams();
+    const { user } = useUser();
     const [listing, setListing] = useState<ListingDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [showPriceOffer, setShowPriceOffer] = useState(false);
+    const [showBuyNow, setShowBuyNow] = useState(false);
+    const [offerAmount, setOfferAmount] = useState('');
+    const [offerMessage, setOfferMessage] = useState('');
 
     useEffect(() => {
         const fetchListing = async () => {
@@ -169,17 +180,72 @@ export default function ListingDetailPage() {
     const mainImage = listing.images?.[0];
     const conditionLabel = getConditionLabel(listing.condition);
     const categoryLabel = getCategoryLabel(listing.category);
+    const isOwner = user && listing.seller_id === user.id;
+
+    const handlePriceOffer = async () => {
+        if (!user) {
+            alert('Bitte melde dich an, um ein Angebot zu machen.');
+            return;
+        }
+
+        if (!offerAmount || parseFloat(offerAmount) <= 0) {
+            alert('Bitte gib einen gültigen Betrag ein.');
+            return;
+        }
+
+        // TODO: Implement price offer API call
+        alert(`Preisvorschlag von ${offerAmount}€ wurde gesendet!`);
+        setShowPriceOffer(false);
+        setOfferAmount('');
+        setOfferMessage('');
+    };
+
+    const handleBuyNow = async () => {
+        if (!user) {
+            alert('Bitte melde dich an, um zu kaufen.');
+            return;
+        }
+
+        // TODO: Implement buy now API call
+        alert('Kaufprozess gestartet! Du wirst zur Zahlungsseite weitergeleitet.');
+        setShowBuyNow(false);
+    };
 
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8">
+                {/* Back Button */}
+                <div className="mb-6">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.history.back()}
+                        className="text-muted-foreground hover:text-foreground"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Zurück
+                    </Button>
+                </div>
+
                 {/* Breadcrumb */}
                 <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
-                    <a href="/listings" className="hover:text-foreground">Anzeigen</a>
-                    <span>/</span>
-                    <span>{categoryLabel}</span>
-                    <span>/</span>
-                    <span className="text-foreground">{listing.title}</span>
+                    <a
+                        href="/listings"
+                        className="hover:text-foreground transition-colors"
+                    >
+                        Anzeigen
+                    </a>
+                    <ChevronRight className="w-4 h-4" />
+                    <a
+                        href={`/listings?category=${listing.category}`}
+                        className="hover:text-foreground transition-colors"
+                    >
+                        {categoryLabel}
+                    </a>
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="text-foreground truncate max-w-md">
+                        {listing.title}
+                    </span>
                 </nav>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -202,8 +268,8 @@ export default function ListingDetailPage() {
                                         key={index}
                                         onClick={() => setCurrentImageIndex(index)}
                                         className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
-                                                ? 'border-primary'
-                                                : 'border-transparent hover:border-muted-foreground'
+                                            ? 'border-primary'
+                                            : 'border-transparent hover:border-muted-foreground'
                                             }`}
                                     >
                                         <img
@@ -262,17 +328,115 @@ export default function ListingDetailPage() {
                                     <p className="text-sm text-muted-foreground mb-4">Verhandlungsbasis</p>
                                 )}
 
-                                <div className="flex gap-2">
-                                    <Button size="lg" className="flex-1">
-                                        <MessageCircle className="w-4 h-4 mr-2" />
-                                        Nachricht senden
-                                    </Button>
-                                    <Button variant="outline" size="lg">
-                                        <Heart className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="outline" size="lg">
-                                        <Share2 className="w-4 h-4" />
-                                    </Button>
+                                <div className="space-y-3">
+                                    <div className="flex gap-2">
+                                        <Button size="lg" className="flex-1">
+                                            <MessageCircle className="w-4 h-4 mr-2" />
+                                            Nachricht senden
+                                        </Button>
+                                        <Button variant="outline" size="lg">
+                                            <Heart className="w-4 h-4" />
+                                        </Button>
+                                        <Button variant="outline" size="lg">
+                                            <Share2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+
+                                    {/* Price offer and buy now buttons */}
+                                    <div className="flex gap-2">
+                                        <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="secondary" size="lg" className="flex-1">
+                                                    <Euro className="w-4 h-4 mr-2" />
+                                                    Preisvorschlag
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Preisvorschlag machen</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <Label htmlFor="offer-amount">Dein Angebot (€)</Label>
+                                                        <Input
+                                                            id="offer-amount"
+                                                            type="number"
+                                                            value={offerAmount}
+                                                            onChange={(e) => setOfferAmount(e.target.value)}
+                                                            placeholder={`Aktueller Preis: ${listing.price.toLocaleString('de-DE')}€`}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="offer-message">Nachricht (optional)</Label>
+                                                        <textarea
+                                                            id="offer-message"
+                                                            value={offerMessage}
+                                                            onChange={(e) => setOfferMessage(e.target.value)}
+                                                            placeholder="Füge eine Nachricht zu deinem Angebot hinzu..."
+                                                            className="w-full mt-1 p-3 border rounded-lg"
+                                                            rows={3}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button onClick={handlePriceOffer} className="flex-1">
+                                                            Angebot senden
+                                                        </Button>
+                                                        <Button variant="outline" onClick={() => setShowPriceOffer(false)} className="flex-1">
+                                                            Abbrechen
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        <Dialog open={showBuyNow} onOpenChange={setShowBuyNow}>
+                                            <DialogTrigger asChild>
+                                                <Button size="lg" className="flex-1 bg-green-600 hover:bg-green-700">
+                                                    <Package className="w-4 h-4 mr-2" />
+                                                    Sofort kaufen
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Sofort kaufen</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                    <div className="text-center">
+                                                        <p className="text-lg font-semibold mb-2">
+                                                            {listing.title}
+                                                        </p>
+                                                        <p className="text-2xl font-bold text-green-600">
+                                                            {listing.price.toLocaleString('de-DE')} €
+                                                        </p>
+                                                        {listing.original_price && (
+                                                            <p className="text-sm text-muted-foreground line-through">
+                                                                Ursprünglich: {listing.original_price.toLocaleString('de-DE')} €
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="bg-muted p-4 rounded-lg">
+                                                        <h4 className="font-semibold mb-2">Kaufoptionen:</h4>
+                                                        <ul className="space-y-1 text-sm">
+                                                            {listing.shipping_available && (
+                                                                <li>✓ Versand möglich</li>
+                                                            )}
+                                                            {listing.pickup_available && (
+                                                                <li>✓ Abholung möglich in {listing.location_city}</li>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button onClick={handleBuyNow} className="flex-1 bg-green-600 hover:bg-green-700">
+                                                            Jetzt kaufen
+                                                        </Button>
+                                                        <Button variant="outline" onClick={() => setShowBuyNow(false)} className="flex-1">
+                                                            Abbrechen
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -303,13 +467,13 @@ export default function ListingDetailPage() {
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                {listing.profiles.seller_rating && (
+                                                {listing.profiles.seller_rating && listing.profiles.seller_rating !== 0 && (
                                                     <div className="flex items-center gap-1">
                                                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                                                         <span>{listing.profiles.seller_rating.toFixed(1)}</span>
                                                     </div>
                                                 )}
-                                                {listing.profiles.total_sales && (
+                                                {listing.profiles.total_sales && listing.profiles.total_sales !== 0 && (
                                                     <span>{listing.profiles.total_sales} Verkäufe</span>
                                                 )}
                                                 <span>Mitglied seit {new Date(listing.profiles.created_at).getFullYear()}</span>
@@ -379,18 +543,56 @@ export default function ListingDetailPage() {
                     <div className="mt-8">
                         <Card>
                             <CardContent className="p-6">
-                                <h2 className="text-xl font-semibold mb-4">Technische Details</h2>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-semibold">Technische Details</h2>
+                                    {/* Edit button for own listings */}
+                                    {isOwner && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.location.href = `/listings/${listing.id}/edit`}
+                                        >
+                                            Bearbeiten
+                                        </Button>
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Object.entries(listing.details).map(([key, value]) => (
-                                        <div key={key} className="flex justify-between">
-                                            <span className="font-medium capitalize">
-                                                {key.replace(/_/g, ' ')}:
-                                            </span>
-                                            <span className="text-muted-foreground">
-                                                {typeof value === 'boolean' ? (value ? 'Ja' : 'Nein') : String(value)}
-                                            </span>
-                                        </div>
-                                    ))}
+                                    {Object.entries(listing.details)
+                                        .filter(([key, value]) => {
+                                            // Only show relevant fields with actual values
+                                            const relevantFields = ['brand', 'model', 'series', 'year', 'country_of_origin', 'guitar_type'];
+                                            return relevantFields.includes(key) &&
+                                                value !== null &&
+                                                value !== undefined &&
+                                                value !== '' &&
+                                                value !== 'null' &&
+                                                !(typeof value === 'object' && Object.keys(value).length === 0);
+                                        })
+                                        .map(([key, value]) => {
+                                            const fieldLabels: Record<string, string> = {
+                                                'brand': 'Marke',
+                                                'model': 'Modell',
+                                                'series': 'Serie',
+                                                'year': 'Baujahr',
+                                                'country_of_origin': 'Herkunftsland',
+                                                'guitar_type': 'Typ'
+                                            };
+
+                                            const displayValue = typeof value === 'boolean'
+                                                ? (value ? 'Ja' : 'Nein')
+                                                : String(value);
+
+                                            return (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="font-medium">
+                                                        {fieldLabels[key] || key.replace(/_/g, ' ')}:
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {displayValue}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </CardContent>
                         </Card>
