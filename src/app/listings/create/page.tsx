@@ -21,15 +21,15 @@ export default function CreateListingPage() {
     const [currentStep, setCurrentStep] = useState(1);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [formData, setFormData] = useState<Partial<CreateListingRequest>>({});
-    const [images, setImages] = useState<string[]>([]);
+    const [images, setImages] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const steps = [
         { id: 1, title: 'Kategorie wählen', description: 'Wähle die Kategorie für deine Anzeige' },
-        { id: 2, title: 'Grunddaten', description: 'Titel, Beschreibung und Preis' },
-        { id: 3, title: 'Bilder', description: 'Lade Bilder deines Instruments hoch' },
-        { id: 4, title: 'Details', description: 'Spezifische Details je nach Kategorie' },
+        { id: 2, title: 'Details', description: 'Spezifische Details je nach Kategorie' },
+        { id: 3, title: 'Grunddaten', description: 'Titel, Beschreibung und Preis' },
+        { id: 4, title: 'Bilder', description: 'Lade Bilder deines Instruments hoch' },
         { id: 5, title: 'Ort & Versand', description: 'Standort und Versandoptionen' },
         { id: 6, title: 'Vorschau', description: 'Überprüfe deine Anzeige vor der Veröffentlichung' }
     ];
@@ -37,7 +37,7 @@ export default function CreateListingPage() {
     const handleCategorySelect = (category: string) => {
         setSelectedCategory(category);
         setFormData(prev => ({ ...prev, category }));
-        setCurrentStep(2);
+        setCurrentStep(2); // Details step comes after category selection
     };
 
     const handleNext = () => {
@@ -67,6 +67,32 @@ export default function CreateListingPage() {
     const handlePublish = async () => {
         setLoading(true);
         try {
+            // First upload images
+            const uploadedImageUrls: string[] = [];
+
+            if (images.length > 0) {
+                const uploadPromises = images.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/api/upload/listing-images', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Upload fehlgeschlagen');
+                    }
+
+                    const data = await response.json();
+                    return data.url;
+                });
+
+                uploadedImageUrls.push(...(await Promise.all(uploadPromises)));
+            }
+
+            // Then create the listing
             const response = await fetch('/api/listings/create', {
                 method: 'POST',
                 headers: {
@@ -74,7 +100,7 @@ export default function CreateListingPage() {
                 },
                 body: JSON.stringify({
                     ...formData,
-                    images,
+                    images: uploadedImageUrls,
                     status: 'active'
                 }),
             });
@@ -152,6 +178,254 @@ export default function CreateListingPage() {
                 return (
                     <div className="space-y-6">
                         <div>
+                            <h2 className="text-2xl font-bold mb-2">Spezifische Details</h2>
+                            <p className="text-muted-foreground">
+                                Ergänze kategorie-spezifische Informationen
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {selectedCategory === LISTING_CATEGORIES.GUITARS && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Marke *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Fender, Gibson, Ibanez"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.guitar_details?.brand || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    guitar_details: {
+                                                        ...prev.guitar_details,
+                                                        brand: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Modell *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Stratocaster, Les Paul"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.guitar_details?.model || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    guitar_details: {
+                                                        ...prev.guitar_details,
+                                                        model: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Gitarrentyp *</label>
+                                            <select
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.guitar_details?.guitar_type || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    guitar_details: {
+                                                        ...prev.guitar_details,
+                                                        guitar_type: e.target.value
+                                                    }
+                                                }))}
+                                            >
+                                                <option value="">Wähle einen Typ</option>
+                                                <option value="electric">E-Gitarre</option>
+                                                <option value="acoustic">Akustikgitarre</option>
+                                                <option value="bass">Bass</option>
+                                                <option value="classical">Klassikgitarre</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Baujahr</label>
+                                            <input
+                                                type="number"
+                                                placeholder="1995"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.guitar_details?.year || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    guitar_details: {
+                                                        ...prev.guitar_details,
+                                                        year: parseInt(e.target.value) || undefined
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium">Zustand *</label>
+                                        <select
+                                            className="w-full mt-1 p-3 border rounded-lg"
+                                            value={formData.condition || ''}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, condition: e.target.value }))}
+                                        >
+                                            <option value="">Wähle den Zustand</option>
+                                            <option value="new">Neu</option>
+                                            <option value="excellent">Sehr gut</option>
+                                            <option value="good">Gut</option>
+                                            <option value="fair">Befriedigend</option>
+                                            <option value="poor">Schlecht</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedCategory === LISTING_CATEGORIES.AMPS && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Marke *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Marshall, Fender, Orange"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.amp_details?.brand || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    amp_details: {
+                                                        ...prev.amp_details,
+                                                        brand: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Modell *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. JCM800, Twin Reverb"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.amp_details?.model || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    amp_details: {
+                                                        ...prev.amp_details,
+                                                        model: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Amptyp *</label>
+                                            <select
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.amp_details?.amp_type || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    amp_details: {
+                                                        ...prev.amp_details,
+                                                        amp_type: e.target.value
+                                                    }
+                                                }))}
+                                            >
+                                                <option value="">Wähle einen Typ</option>
+                                                <option value="tube">Röhrenamp</option>
+                                                <option value="solid_state">Transistoramp</option>
+                                                <option value="hybrid">Hybrid</option>
+                                                <option value="modeling">Modeling</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Leistung (Watt)</label>
+                                            <input
+                                                type="number"
+                                                placeholder="50"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.amp_details?.wattage || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    amp_details: {
+                                                        ...prev.amp_details,
+                                                        wattage: parseInt(e.target.value) || undefined
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedCategory === LISTING_CATEGORIES.EFFECTS && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium">Marke *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. Boss, Electro-Harmonix, Strymon"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.effect_details?.brand || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    effect_details: {
+                                                        ...prev.effect_details,
+                                                        brand: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Modell *</label>
+                                            <input
+                                                type="text"
+                                                placeholder="z.B. DS-1, Big Muff, Timeline"
+                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                value={formData.effect_details?.model || ''}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    effect_details: {
+                                                        ...prev.effect_details,
+                                                        model: e.target.value
+                                                    }
+                                                }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium">Effekttyp *</label>
+                                        <select
+                                            className="w-full mt-1 p-3 border rounded-lg"
+                                            value={formData.effect_details?.effect_type || ''}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                effect_details: {
+                                                    ...prev.effect_details,
+                                                    effect_type: e.target.value
+                                                }
+                                            }))}
+                                        >
+                                            <option value="">Wähle einen Typ</option>
+                                            <option value="distortion">Verzerrer</option>
+                                            <option value="overdrive">Overdrive</option>
+                                            <option value="delay">Delay</option>
+                                            <option value="reverb">Reverb</option>
+                                            <option value="modulation">Modulation</option>
+                                            <option value="multi">Multi-Effekt</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            case 3:
+                return (
+                    <div className="space-y-6">
+                        <div>
                             <h2 className="text-2xl font-bold mb-2">Grunddaten</h2>
                             <p className="text-muted-foreground">
                                 Beschreibe dein Instrument und setze einen Preis
@@ -217,7 +491,7 @@ export default function CreateListingPage() {
                     </div>
                 );
 
-            case 3:
+            case 4:
                 return (
                     <div className="space-y-6">
                         <div>
@@ -233,29 +507,6 @@ export default function CreateListingPage() {
                             maxImages={10}
                             disabled={loading}
                         />
-                    </div>
-                );
-
-            case 4:
-                return (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">Spezifische Details</h2>
-                            <p className="text-muted-foreground">
-                                Ergänze kategorie-spezifische Informationen
-                            </p>
-                        </div>
-
-                        <div className="p-6 border-2 border-dashed border-muted-foreground/25 rounded-lg text-center">
-                            <p className="text-muted-foreground">
-                                Kategorie-spezifische Felder werden hier implementiert
-                            </p>
-                            <Badge variant="outline" className="mt-2">
-                                {selectedCategory === LISTING_CATEGORIES.GUITARS && 'Gitarren-Details'}
-                                {selectedCategory === LISTING_CATEGORIES.AMPS && 'Amp-Details'}
-                                {selectedCategory === LISTING_CATEGORIES.EFFECTS && 'Effekt-Details'}
-                            </Badge>
-                        </div>
                     </div>
                 );
 
@@ -412,22 +663,30 @@ export default function CreateListingPage() {
             <div className="mb-8">
                 <div className="flex items-center justify-between">
                     {steps.map((step, index) => (
-                        <div key={step.id} className="flex items-center">
-                            <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${currentStep >= step.id
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                                }
-              `}>
-                                {step.id}
-                            </div>
-                            {index < steps.length - 1 && (
+                        <div key={step.id} className="flex flex-col items-center">
+                            <div className="flex items-center">
                                 <div className={`
-                  w-16 h-1 mx-2
-                  ${currentStep > step.id ? 'bg-primary' : 'bg-muted'}
-                `} />
-                            )}
+                                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                                    ${currentStep >= step.id
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground'
+                                    }
+                                `}>
+                                    {step.id}
+                                </div>
+                                {index < steps.length - 1 && (
+                                    <div className={`
+                                        w-16 h-1 mx-2
+                                        ${currentStep > step.id ? 'bg-primary' : 'bg-muted'}
+                                    `} />
+                                )}
+                            </div>
+                            <div className="mt-2 text-center">
+                                <p className={`text-xs font-medium ${currentStep === step.id ? 'text-primary' : 'text-muted-foreground'
+                                    }`}>
+                                    {step.title}
+                                </p>
+                            </div>
                         </div>
                     ))}
                 </div>

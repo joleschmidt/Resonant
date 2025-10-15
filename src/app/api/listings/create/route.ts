@@ -22,11 +22,13 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        if (!profile || !['verified', 'premium', 'store', 'admin'].includes(profile.account_type)) {
-            return NextResponse.json({
-                error: 'Account verification required to create listings'
-            }, { status: 403 });
-        }
+        // Temporarily allow all authenticated users to create listings
+        // TODO: Re-enable verification requirement later
+        // if (!profile || !['verified', 'premium', 'store', 'admin'].includes(profile.account_type)) {
+        //     return NextResponse.json({
+        //         error: 'Account verification required to create listings'
+        //     }, { status: 403 });
+        // }
 
         // Parse and validate request body
         const body = await request.json();
