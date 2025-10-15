@@ -223,35 +223,46 @@ export default function ListingDetailPage() {
 
 
 
-                {/* Breadcrumb */}
-                <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push('/listings')}
-                        className="text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Zurück
-                    </Button>
-                    <a
-                        href="/listings"
-                        className="hover:text-foreground transition-colors"
-                    >
-                        Anzeigen
-                    </a>
-                    <ChevronRight className="w-4 h-4" />
-                    <a
-                        href={`/listings?category=${listing.category}`}
-                        className="hover:text-foreground transition-colors"
-                    >
-                        {categoryLabel}
-                    </a>
-                    <ChevronRight className="w-4 h-4" />
-                    <span className="text-foreground truncate max-w-md">
-                        {listing.title}
-                    </span>
-                </nav>
+                {/* Breadcrumb + right-aligned Edit */}
+                <div className="mb-6 flex items-center justify-between">
+                    <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push('/listings')}
+                            className="text-muted-foreground hover:text-foreground"
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Zurück
+                        </Button>
+                        <a
+                            href="/listings"
+                            className="hover:text-foreground transition-colors"
+                        >
+                            Anzeigen
+                        </a>
+                        <ChevronRight className="w-4 h-4" />
+                        <a
+                            href={`/listings?category=${listing.category}`}
+                            className="hover:text-foreground transition-colors"
+                        >
+                            {categoryLabel}
+                        </a>
+                        <ChevronRight className="w-4 h-4" />
+                        <span className="text-foreground truncate max-w-md">
+                            {listing.title}
+                        </span>
+                    </nav>
+                    {isOwner && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.href = `/listings/${listing.id}/edit`}
+                        >
+                            Bearbeiten
+                        </Button>
+                    )}
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Images */}
@@ -311,7 +322,7 @@ export default function ListingDetailPage() {
                                     <span>{new Date(listing.created_at).toLocaleDateString('de-DE')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <span className="w-4 h-4">👁</span>
+                                    <span className="w-4 h-4 flex items-center justify-center">👁</span>
                                     <span>{listing.views} Aufrufe</span>
                                 </div>
                             </div>
@@ -539,9 +550,9 @@ export default function ListingDetailPage() {
                             <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
                         </div>
                         <div className="flex-1 flex items-center justify-center select-none">
-                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i>0? i-1 : (listing.images?.length||1)-1))}>‹</button>
+                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i > 0 ? i - 1 : (listing.images?.length || 1) - 1))}>‹</button>
                             <img src={listing.images?.[currentImageIndex] || mainImage!} alt={listing.title} className="max-w-[90vw] max-height-[80vh] object-contain" />
-                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length||1)-1 ? i+1 : 0))}>›</button>
+                            <button className="p-4 text-white/70 hover:text-white" onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length || 1) - 1 ? i + 1 : 0))}>›</button>
                         </div>
                     </div>
                 )}
@@ -565,16 +576,6 @@ export default function ListingDetailPage() {
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-xl font-semibold">Technische Details</h2>
-                                    {/* Edit button for own listings */}
-                                    {isOwner && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => window.location.href = `/listings/${listing.id}/edit`}
-                                        >
-                                            Bearbeiten
-                                        </Button>
-                                    )}
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {Object.entries(listing.details)
