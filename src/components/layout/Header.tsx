@@ -56,11 +56,6 @@ export function Header() {
                     Anzeige erstellen
                   </Button>
                 </Link>
-                <Link href="/profile">
-                  <Button variant="ghost" size="sm">
-                    Profil
-                  </Button>
-                </Link>
                 <UserMenu />
               </div>
               <div className="md:hidden">

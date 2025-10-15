@@ -21,6 +21,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { ListingCard } from '@/components/features/listings/ListingCard';
+import { useListingsStore, applyClientFilters } from '@/stores/listingsStore';
 import { LISTING_CATEGORIES, CONDITIONS, GUITAR_TYPES, AMP_TYPES, EFFECT_TYPES } from '@/utils/constants';
 import type { ListingWithDetails } from '@/types/listings';
 
@@ -38,9 +39,9 @@ interface ListingsResponse {
 
 export default function ListingsPage() {
     const searchParams = useSearchParams();
+    const { allListings, isLoading, error, fetchOnce } = useListingsStore();
     const [listings, setListings] = useState<ListingWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [pagination, setPagination] = useState<ListingsResponse['pagination'] | null>(null);
 
     // Filters state
@@ -65,44 +66,13 @@ export default function ListingsPage() {
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
 
     // Fetch listings
-    const fetchListings = useCallback(async (page = 1) => {
+    const fetchListings = useCallback(async () => {
         setLoading(true);
-        setError(null);
+        await fetchOnce();
+        setLoading(false);
+    }, [fetchOnce]);
 
-        try {
-            const params = new URLSearchParams();
-
-            // Add filters to params
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value !== undefined && value !== null && value !== '') {
-                    if (Array.isArray(value)) {
-                        params.append(key, value.join(','));
-                    } else {
-                        params.append(key, value.toString());
-                    }
-                }
-            });
-
-            params.append('page', page.toString());
-            params.append('limit', '20');
-
-            const response = await fetch(`/api/listings?${params.toString()}`);
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch listings');
-            }
-
-            const data: ListingsResponse = await response.json();
-            setListings(data.data);
-            setPagination(data.pagination);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
-        } finally {
-            setLoading(false);
-        }
-    }, [filters]);
-
-    // Handle search
+    // Handle search (no auto-fetch; fetch on Enter or apply)
     const handleSearch = (query: string) => {
         setSearchQuery(query);
         setFilters((prev: any) => ({ ...prev, search: query || undefined }));
@@ -115,28 +85,48 @@ export default function ListingsPage() {
 
     // Apply filters
     const applyFilters = () => {
-        fetchListings(1);
+        const filtered = applyClientFilters(allListings, filters);
+        setListings(filtered);
+        // simple client-side pagination placeholder
+        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
     };
 
     // Clear filters
     const clearFilters = () => {
         setFilters({});
         setSearchQuery('');
-        fetchListings(1);
+        setListings(allListings);
+        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: allListings.length, has_next: false, has_previous: false });
     };
 
     // Load listings on mount and when filters change
     useEffect(() => {
-        fetchListings(1);
-    }, [fetchListings]);
+        fetchListings();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Recompute when store data available or filters change after explicit apply
+    useEffect(() => {
+        if (allListings.length && listings.length === 0) {
+            // initial view before any apply → show unfiltered
+            setListings(allListings);
+            setPagination({ page: 1, limit: 20, total_pages: 1, total_count: allListings.length, has_next: false, has_previous: false });
+        }
+    }, [allListings]);
 
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Category Selection */}
             <div className="mb-8">
-                <Tabs value={filters.category || 'all'} onValueChange={(value) =>
-                    handleFilterChange('category', value === 'all' ? undefined : value)
-                }>
+                <Tabs value={filters.category || 'all'} onValueChange={(value) => {
+                    const next = value === 'all' ? undefined : value;
+                    handleFilterChange('category', next);
+                    // Apply client-side filter instantly
+                    const nextFilters = { ...filters, category: next } as any;
+                    const filtered = applyClientFilters(allListings, nextFilters);
+                    setListings(filtered);
+                    setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
+                }}>
                     <TabsList className="grid w-full grid-cols-4 max-w-2xl">
                         <TabsTrigger value="all">Alle</TabsTrigger>
                         <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
@@ -154,14 +144,22 @@ export default function ListingsPage() {
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
                     {/* Search */}
                     <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Suche nach Marke, Modell, Typ..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className="pl-10 h-9 text-sm"
-                            />
+                        <div className="relative flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Suche nach Marke, Modell, Typ..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') applyFilters();
+                                    }}
+                                    className="pl-10 h-9 text-sm"
+                                />
+                            </div>
+                            <Button size="sm" onClick={applyFilters} aria-label="Suche ausführen">
+                                Suchen
+                            </Button>
                         </div>
                     </div>
 
@@ -201,72 +199,61 @@ export default function ListingsPage() {
                 <Card className="mb-6">
                     <CardContent className="p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {/* Price Range */}
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Preis</label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            type="number"
-                                            placeholder="Min"
-                                            value={filters.price_min || ''}
-                                            onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                        />
-                                        <Input
-                                            type="number"
-                                            placeholder="Max"
-                                            value={filters.price_max || ''}
-                                            onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Condition */}
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Zustand</label>
-                                    <div className="flex flex-wrap gap-1">
-                                        {Object.values(CONDITIONS).map((condition) => (
-                                            <Badge
-                                                key={condition}
-                                                variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
-                                                className="cursor-pointer"
-                                                onClick={() => {
-                                                    const currentConditions = filters.condition || [];
-                                                    const newConditions = currentConditions.includes(condition)
-                                                        ? currentConditions.filter((c: string) => c !== condition)
-                                                        : [...currentConditions, condition];
-                                                    handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
-                                                }}
-                                            >
-                                                {getConditionLabel(condition)}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Location */}
-                                <div>
-                                    <label className="text-sm font-medium mb-2 block">Ort</label>
+                            {/* Price Range */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Preis</label>
+                                <div className="flex gap-2">
                                     <Input
-                                        placeholder="Stadt"
-                                        value={filters.location_city || ''}
-                                        onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                        type="number"
+                                        placeholder="Min"
+                                        value={filters.price_min || ''}
+                                        onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    />
+                                    <Input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={filters.price_max || ''}
+                                        onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
                                     />
                                 </div>
                             </div>
 
-                            {/* Filter Actions */}
-                            <div className="flex gap-2 mt-4">
-                                <Button onClick={applyFilters}>
-                                    Filter anwenden
-                                </Button>
-                                <Button variant="outline" onClick={clearFilters}>
-                                    Filter zurücksetzen
-                                </Button>
+                            {/* Condition */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Zustand</label>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.values(CONDITIONS).map((condition) => (
+                                        <Badge
+                                            key={condition}
+                                            variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
+                                            className="cursor-pointer"
+                                            onClick={() => {
+                                                const currentConditions = filters.condition || [];
+                                                const newConditions = currentConditions.includes(condition)
+                                                    ? currentConditions.filter((c: string) => c !== condition)
+                                                    : [...currentConditions, condition];
+                                                handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
+                                            }}
+                                        >
+                                            {getConditionLabel(condition)}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label className="text-sm font-medium mb-2 block">Ort</label>
+                                <Input
+                                    placeholder="Stadt"
+                                    value={filters.location_city || ''}
+                                    onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                />
                             </div>
                         </div>
+
                         {/* Filter Actions */}
-                        <div className="flex gap-2 mt-4">
+                        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
                             <Button onClick={applyFilters}>Filter anwenden</Button>
                             <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
                         </div>
@@ -284,7 +271,7 @@ export default function ListingsPage() {
                 <Card>
                     <CardContent className="p-6 text-center">
                         <p className="text-destructive">{error}</p>
-                        <Button onClick={() => fetchListings(1)} className="mt-4">
+                        <Button onClick={() => fetchListings()} className="mt-4">
                             Erneut versuchen
                         </Button>
                     </CardContent>
@@ -340,8 +327,8 @@ export default function ListingsPage() {
                         <div className="flex items-center justify-center gap-2 mt-8">
                             <Button
                                 variant="outline"
-                                onClick={() => fetchListings(pagination.page - 1)}
-                                disabled={!pagination.has_previous}
+                                onClick={() => { /* TODO: client pagination */ }}
+                                disabled
                             >
                                 Zurück
                             </Button>
@@ -352,8 +339,8 @@ export default function ListingsPage() {
 
                             <Button
                                 variant="outline"
-                                onClick={() => fetchListings(pagination.page + 1)}
-                                disabled={!pagination.has_next}
+                                onClick={() => { /* TODO: client pagination */ }}
+                                disabled
                             >
                                 Weiter
                             </Button>

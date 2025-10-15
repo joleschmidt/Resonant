@@ -281,6 +281,16 @@ export default function EditListingPage() {
                         <h1 className="text-2xl font-bold">Anzeige bearbeiten</h1>
                         <p className="text-muted-foreground">{listing.title}</p>
                     </div>
+                    <div className="flex-1 flex justify-end">
+                        <Button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="max-w-32"
+                        >
+                            <Save className="w-4 h-4 mr-2" />
+                            {saving ? 'Speichern...' : 'Speichern'}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
