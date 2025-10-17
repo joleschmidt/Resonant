@@ -3,11 +3,16 @@
  * Horizontal KPIs for profile
  */
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Star, PackageCheck, ShoppingBag, Users } from 'lucide-react';
 
 type Stats = {
+    userId: string;
+    username: string;
     rating?: number | null;
     sales?: number | null;
     purchases?: number | null;
@@ -15,11 +20,30 @@ type Stats = {
     following?: number | null;
 };
 
-export function UserStatsStrip({ rating = 0, sales = 0, purchases = 0, followers = 0, following = 0 }: Stats) {
+export function UserStatsStrip({ userId, username, rating = 0, sales = 0, purchases = 0, followers = 0, following = 0 }: Stats) {
+    const [followersCount, setFollowersCount] = useState(followers || 0);
+    const [followingCount, setFollowingCount] = useState(following || 0);
+
+    useEffect(() => {
+        const fetchFollowStats = async () => {
+            try {
+                const res = await fetch(`/api/profile/${username}/follow`);
+                if (!res.ok) return;
+                const json = await res.json();
+                setFollowersCount(json.followers_count || 0);
+                setFollowingCount(json.following_count || 0);
+            } catch (error) {
+                console.error('Failed to fetch follow stats:', error);
+            }
+        };
+
+        fetchFollowStats();
+    }, [username]);
+
     const items = [
         { icon: Star, label: 'Bewertung', value: (rating || 0).toFixed(1) },
         { icon: PackageCheck, label: 'Verkäufe', value: sales || 0 },
-        { icon: Users, label: 'Follower', value: followers || 0 },
+        { icon: Users, label: 'Follower', value: followersCount },
     ];
 
     return (

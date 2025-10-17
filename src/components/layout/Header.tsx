@@ -10,7 +10,7 @@ import { AuthButton } from '@/components/features/auth/AuthButton';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { UserMenu } from '@/components/features/auth/UserMenu';
-import { Menu } from 'lucide-react';
+import { Menu, MessageSquare } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +51,11 @@ export function Header() {
           {user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
+                <Link href="/messages">
+                  <Button variant="ghost" size="icon" aria-label="Nachrichten">
+                    <MessageSquare className="w-5 h-5" />
+                  </Button>
+                </Link>
                 <UserMenu />
               </div>
               <div className="md:hidden">
@@ -74,6 +79,9 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profil</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/messages">Nachrichten</Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

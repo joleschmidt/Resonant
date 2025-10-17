@@ -1,6 +1,6 @@
 /**
  * Auth Layout
- * Layout for authenticated pages
+ * Layout for authenticated pages requiring login
  */
 
 import { redirect } from 'next/navigation';
@@ -15,10 +15,11 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         data: { user },
     } = await supabase.auth.getUser();
 
+    // If not logged in, redirect to home page
     if (!user) {
         redirect('/');
     }
 
-    return <>{children}</>;
+    // Just pass the children through - the root layout handles the UI structure
+    return children;
 }
-

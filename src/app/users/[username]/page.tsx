@@ -28,6 +28,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                 <div className="space-y-0">
                     <UserProfileHeader user={user as any} isSelf={false} />
                     <UserStatsStrip
+                        userId={user.id}
+                        username={user.username}
                         rating={user.seller_rating}
                         sales={user.total_sales}
                         purchases={user.total_purchases}

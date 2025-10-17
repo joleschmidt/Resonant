@@ -6,6 +6,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -34,6 +35,25 @@ export async function createClient() {
   );
 }
 
+// Admin client that bypasses RLS
+export function createAdminClient() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Service role key is not available");
+    throw new Error("Service role key is required");
+  }
+
+  return createServiceClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+}
+
 // Public helpers
 export async function getUserByUsername(username: string) {
   const supabase = await createClient();
@@ -47,4 +67,3 @@ export async function getUserByUsername(username: string) {
   if (error) return { user: null, error } as const;
   return { user: data, error: null } as const;
 }
-

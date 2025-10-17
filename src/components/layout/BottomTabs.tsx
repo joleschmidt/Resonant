@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusCircle, Heart, User } from 'lucide-react';
+import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react';
 
 type Tab = {
     href: string;
@@ -14,7 +14,7 @@ const TABS: Tab[] = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/listings', label: 'Anzeigen', icon: Search },
     { href: '/listings/create', label: 'Erstellen', icon: PlusCircle },
-    { href: '/favorites', label: 'Favoriten', icon: Heart },
+    { href: '/messages', label: 'Nachrichten', icon: MessageCircle },
     { href: '/profile', label: 'Profil', icon: User },
 ];
 

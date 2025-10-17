@@ -66,6 +66,8 @@ export default async function ProfilePage() {
                 <div className="space-y-0">
                     <UserProfileHeader user={profile as Profile} isSelf editHref="/profile/edit" />
                     <UserStatsStrip
+                        userId={profile.id}
+                        username={profile.username}
                         rating={profile.seller_rating}
                         sales={profile.total_sales}
                         purchases={profile.total_purchases}

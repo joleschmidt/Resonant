@@ -2,9 +2,9 @@
  * Central Type Exports
  */
 
-import type { AccountType, VerificationStatus, UserPreferences } from './database';
+import type { AccountType, VerificationStatus, UserPreferences, TransactionStatus } from './database';
 
-export type { Database, AccountType, VerificationStatus, UserPreferences } from './database';
+export type { Database, AccountType, VerificationStatus, UserPreferences, TransactionStatus } from './database';
 
 // Re-export from constants for convenience
 export type {
@@ -59,5 +59,51 @@ export interface ApiResponse<T = unknown> {
     message: string;
     code?: string;
   };
+}
+
+// Messaging Types
+export interface Conversation {
+  id: string;
+  listing_id: string | null;
+  created_at: string;
+  updated_at: string;
+  participants?: Profile[];
+  last_message?: Message;
+  unread_count?: number;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+  sender?: Profile;
+}
+
+// Transaction Types
+export interface Transaction {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  amount: number;
+  status: TransactionStatus;
+  created_at: string;
+  completed_at: string | null;
+}
+
+// Rating Types
+export interface Rating {
+  id: string;
+  transaction_id: string | null;
+  listing_id: string | null;
+  rater_id: string;
+  rated_user_id: string;
+  score: number;
+  comment: string | null;
+  created_at: string;
+  rater?: Profile;
 }
 

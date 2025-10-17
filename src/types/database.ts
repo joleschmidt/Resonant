@@ -14,6 +14,8 @@ export type VerificationStatus =
   | 'identity_verified'
   | 'fully_verified';
 
+export type TransactionStatus = 'pending' | 'completed' | 'cancelled';
+
 export interface UserPreferences {
   preferred_brands?: string[];
   preferred_types?: ('electric' | 'acoustic' | 'classical' | 'bass')[];
@@ -343,6 +345,153 @@ export interface Database {
           updated_at?: string;
         } & Record<string, unknown>;
       };
+      conversations: {
+        Row: {
+          id: string;
+          listing_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          listing_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          user_id: string;
+          joined_at: string;
+          last_read_at: string | null;
+        };
+        Insert: {
+          conversation_id: string;
+          user_id: string;
+          joined_at?: string;
+          last_read_at?: string | null;
+        };
+        Update: {
+          conversation_id?: string;
+          user_id?: string;
+          joined_at?: string;
+          last_read_at?: string | null;
+        };
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          content?: string;
+          read?: boolean;
+          created_at?: string;
+        };
+      };
+      followers: {
+        Row: {
+          follower_id: string;
+          following_id: string;
+          created_at: string;
+        };
+        Insert: {
+          follower_id: string;
+          following_id: string;
+          created_at?: string;
+        };
+        Update: {
+          follower_id?: string;
+          following_id?: string;
+          created_at?: string;
+        };
+      };
+      transactions: {
+        Row: {
+          id: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          amount: number;
+          status: TransactionStatus;
+          created_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          buyer_id: string;
+          seller_id: string;
+          amount: number;
+          status?: TransactionStatus;
+          created_at?: string;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          listing_id?: string;
+          buyer_id?: string;
+          seller_id?: string;
+          amount?: number;
+          status?: TransactionStatus;
+          created_at?: string;
+          completed_at?: string | null;
+        };
+      };
+      ratings: {
+        Row: {
+          id: string;
+          transaction_id: string | null;
+          listing_id: string | null;
+          rater_id: string;
+          rated_user_id: string;
+          score: number;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id?: string | null;
+          listing_id?: string | null;
+          rater_id: string;
+          rated_user_id: string;
+          score: number;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string | null;
+          listing_id?: string | null;
+          rater_id?: string;
+          rated_user_id?: string;
+          score?: number;
+          comment?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -355,6 +504,7 @@ export interface Database {
       verification_status: VerificationStatus;
       listing_category: 'guitars' | 'amps' | 'effects';
       listing_status: 'draft' | 'active' | 'pending' | 'sold' | 'expired' | 'removed' | 'reported';
+      transaction_status: TransactionStatus;
       guitar_type: string;
       amp_type: string;
       effect_type: string;

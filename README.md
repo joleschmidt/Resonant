@@ -13,7 +13,9 @@ RESONANT ist eine moderne Marketplace-Plattform, speziell entwickelt für die de
 - ✅ **Multi-Kategorie Listings** - Gitarren, Amps & Effekte mit spezifischen Feldern
 - ✅ **Image Upload & Compression** - Optimierte Bildverarbeitung mit ImageKit
 - ✅ **Search & Filters** - Erweiterte Suchfunktionen mit Kategorie-Filtern
-- 🚧 **Messaging** - Sicheres Nachrichtensystem (In Entwicklung)
+- ✅ **Messaging** - Direktnachrichten zwischen Käufern und Verkäufern
+- ✅ **Follow System** - Folge anderen Nutzern und baue dein Netzwerk auf
+- ✅ **Transactions & Ratings** - Sichere Transaktionen mit Bewertungssystem
 
 ## 🛠 Tech Stack
 
@@ -68,10 +70,16 @@ RESONANT ist eine moderne Marketplace-Plattform, speziell entwickelt für die de
    - Region: **Europe (Frankfurt)** (wichtig für DSGVO)
    - Kopiere die API Keys aus Settings > API
    
-   Führe die Migration aus:
+   Führe die Migrationen aus (in Reihenfolge):
    - Öffne SQL Editor im Supabase Dashboard
-   - Kopiere den Inhalt von `supabase/migrations/001_initial_schema.sql`
-   - Führe die Migration aus
+   - Kopiere und führe aus: `001_initial_schema.sql`
+   - Kopiere und führe aus: `002_listings_schema.sql`
+   - Kopiere und führe aus: `002_username_enforcement.sql`
+   - Kopiere und führe aus: `003_storage_setup.sql`
+   - Kopiere und führe aus: `004_favorites_offers.sql`
+   - Kopiere und führe aus: `005_messaging.sql`
+   - Kopiere und führe aus: `006_followers.sql`
+   - Kopiere und führe aus: `007_stats_and_ratings.sql`
 
 5. **Development Server starten**
    \`\`\`bash
@@ -130,17 +138,20 @@ src/
 - [x] Browse Listings with Advanced Filters
 - [x] Image Upload & Compression
 - [x] Search & Filters
-- [ ] Favorites System
+- [x] Favorites System
 
-### Phase 3: Communication
-- [ ] Messaging System
-- [ ] Notifications
-- [ ] Offer Management
+### Phase 3: Communication ✅
+- [x] Messaging System
+- [x] Follow System
+- [x] Offer Management
+- [ ] Notifications (Email/Push)
 
-### Phase 4: Transactions
+### Phase 4: Transactions ✅
+- [x] Transaction Creation (Buy Now)
+- [x] Transaction Completion
+- [x] Rating System
 - [ ] Payment Integration (Stripe)
 - [ ] Escrow Service
-- [ ] Rating System
 
 ## 🤝 Contributing
 

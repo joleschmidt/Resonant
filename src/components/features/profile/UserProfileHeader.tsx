@@ -3,6 +3,9 @@
  * Polished header with cover, avatar, name, badges and actions
  */
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Profile } from '@/types';
@@ -11,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Pencil } from 'lucide-react';
 import { VerificationBadge } from './VerificationBadge';
+import { MessageModal } from '@/components/features/messaging/MessageModal';
+import { useUser } from '@/hooks/auth/useUser';
 import Link from 'next/link';
 
 type Props = {
@@ -36,6 +41,57 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
 
     const banner = coverUrl || null;
     const hasCover = false; // banner disabled on all viewports
+
+    const { isAuthenticated } = useUser();
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+
+    useEffect(() => {
+        if (!isAuthenticated || isSelf) return;
+
+        const fetchFollowStatus = async () => {
+            try {
+                const res = await fetch(`/api/profile/${user.username}/follow`);
+                if (!res.ok) return;
+                const json = await res.json();
+                setIsFollowing(json.is_following);
+            } catch (error) {
+                console.error('Failed to fetch follow status:', error);
+            }
+        };
+
+        fetchFollowStatus();
+    }, [user.username, isAuthenticated, isSelf]);
+
+    const handleToggleFollow = async () => {
+        if (!isAuthenticated) {
+            alert('Bitte melde dich an, um Nutzern zu folgen');
+            return;
+        }
+
+        setIsTogglingFollow(true);
+        const prevState = isFollowing;
+        setIsFollowing(!prevState);
+
+        try {
+            const res = await fetch(`/api/profile/${user.username}/follow`, {
+                method: prevState ? 'DELETE' : 'POST',
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to toggle follow');
+            }
+
+            const json = await res.json();
+            setIsFollowing(json.is_following);
+        } catch (error) {
+            console.error('Failed to toggle follow:', error);
+            setIsFollowing(prevState);
+            alert('Aktion fehlgeschlagen. Bitte später erneut versuchen.');
+        } finally {
+            setIsTogglingFollow(false);
+        }
+    };
 
     return (
         <div className={cn('rounded-t-xl border-b-0 border overflow-hidden', className)}>
@@ -88,9 +144,23 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
                     <div className="mt-2 w-full sm:mt-0 sm:w-auto sm:ml-auto flex flex-wrap gap-2 justify-center sm:justify-end">
                         {isSelf ? null : (
                             <>
-                                <Button size="sm" className="flex-1 sm:flex-none">Nachricht</Button>
-                                <Button size="sm" variant="outline" disabled className="flex-1 sm:flex-none">
-                                    Folgen
+                                <MessageModal
+                                    recipientId={user.id}
+                                    recipientUsername={user.username}
+                                    trigger={
+                                        <Button size="sm" className="flex-1 sm:flex-none">
+                                            Nachricht
+                                        </Button>
+                                    }
+                                />
+                                <Button
+                                    size="sm"
+                                    variant={isFollowing ? 'default' : 'outline'}
+                                    onClick={handleToggleFollow}
+                                    disabled={isTogglingFollow}
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    {isFollowing ? 'Folge ich' : 'Folgen'}
                                 </Button>
                             </>
                         )}

@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MessageModal } from '@/components/features/messaging/MessageModal';
+import { BuyNowModal } from '@/components/features/transactions/BuyNowModal';
 import {
     MapPin,
     Truck,
@@ -238,9 +240,7 @@ export default function ListingDetailPage() {
     };
 
     const handleBuyNow = async () => {
-
-        // TODO: Implement buy now API call
-        alert('Kaufprozess gestartet! Du wirst zur Zahlungsseite weitergeleitet.');
+        // Handled by BuyNowModal component
         setShowBuyNow(false);
     };
 
@@ -438,20 +438,28 @@ export default function ListingDetailPage() {
                                                 <Share2 className="w-4 h-4" />
                                             </Button>
                                         </div>
-                                        <Dialog open={showBuyNow} onOpenChange={setShowBuyNow}>
-                                            <DialogTrigger asChild>
-                                                <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                                                    <Package className="w-4 h-4 mr-2" />
-                                                    Sofort kaufen
-                                                </Button>
-                                            </DialogTrigger>
-                                        </Dialog>
+                                        <Button
+                                            size="sm"
+                                            className="bg-green-600 hover:bg-green-700"
+                                            onClick={() => setShowBuyNow(true)}
+                                        >
+                                            <Package className="w-4 h-4 mr-2" />
+                                            Sofort kaufen
+                                        </Button>
                                     </div>
                                     <div className="hidden lg:flex gap-2">
-                                        <Button size="lg" className="flex-1">
-                                            <MessageCircle className="w-4 h-4 mr-2" />
-                                            Nachricht senden
-                                        </Button>
+                                        <MessageModal
+                                            recipientId={listing.seller_id}
+                                            recipientUsername={listing.profiles?.username || 'Verkäufer'}
+                                            listingId={listing.id}
+                                            listingTitle={listing.title}
+                                            trigger={
+                                                <Button size="lg" className="flex-1">
+                                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                                    Nachricht senden
+                                                </Button>
+                                            }
+                                        />
                                         <Button variant={isFavorite ? 'destructive' : 'outline'} size="lg" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
                                             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                                             {typeof favoritesCount === 'number' && (
@@ -510,56 +518,28 @@ export default function ListingDetailPage() {
                                             </DialogContent>
                                         </Dialog>
 
-                                        <Dialog open={showBuyNow} onOpenChange={setShowBuyNow}>
-                                            <DialogTrigger asChild>
-                                                <Button size="lg" className="flex-1 bg-green-600 hover:bg-green-700">
-                                                    <Package className="w-4 h-4 mr-2" />
-                                                    Sofort kaufen
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Sofort kaufen</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="space-y-4">
-                                                    <div className="text-center">
-                                                        <p className="text-lg font-semibold mb-2">
-                                                            {listing.title}
-                                                        </p>
-                                                        <p className="text-2xl font-bold text-green-600">
-                                                            {listing.price.toLocaleString('de-DE')} €
-                                                        </p>
-                                                        {listing.original_price && (
-                                                            <p className="text-sm text-muted-foreground line-through">
-                                                                Ursprünglich: {listing.original_price.toLocaleString('de-DE')} €
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    <div className="bg-muted p-4 rounded-lg">
-                                                        <h4 className="font-semibold mb-2">Kaufoptionen:</h4>
-                                                        <ul className="space-y-1 text-sm">
-                                                            {listing.shipping_available && (
-                                                                <li>✓ Versand möglich</li>
-                                                            )}
-                                                            {listing.pickup_available && (
-                                                                <li>✓ Abholung möglich in {listing.location_city}</li>
-                                                            )}
-                                                            {Array.isArray(listing.shipping_methods) && listing.shipping_methods.length > 0 && (
-                                                                <li>Versandarten: {listing.shipping_methods.join(', ')}</li>
-                                                            )}
-                                                        </ul>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Button onClick={handleBuyNow} className="flex-1 bg-green-600 hover:bg-green-700">
-                                                            Jetzt kaufen
-                                                        </Button>
-                                                        <Button variant="outline" onClick={() => setShowBuyNow(false)} className="flex-1">
-                                                            Abbrechen
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </DialogContent>
-                                        </Dialog>
+                                        <Button
+                                            size="lg"
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                            onClick={() => setShowBuyNow(true)}
+                                        >
+                                            <Package className="w-4 h-4 mr-2" />
+                                            Sofort kaufen
+                                        </Button>
+                                        <BuyNowModal
+                                            open={showBuyNow}
+                                            onOpenChange={setShowBuyNow}
+                                            listing={{
+                                                id: listing.id,
+                                                title: listing.title,
+                                                price: listing.price,
+                                                original_price: listing.original_price,
+                                                location_city: listing.location_city,
+                                                shipping_available: listing.shipping_available,
+                                                pickup_available: listing.pickup_available,
+                                                shipping_methods: listing.shipping_methods,
+                                            }}
+                                        />
                                     </div>
                                 </div>
                             </CardContent>
@@ -646,10 +626,18 @@ export default function ListingDetailPage() {
                 {/* Mobile sticky action bar */}
                 <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden">
                     <div className="container mx-auto px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] flex gap-2">
-                        <Button className="flex-1">
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Nachricht
-                        </Button>
+                        <MessageModal
+                            recipientId={listing.seller_id}
+                            recipientUsername={listing.profiles?.username || 'Verkäufer'}
+                            listingId={listing.id}
+                            listingTitle={listing.title}
+                            trigger={
+                                <Button className="flex-1">
+                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                    Nachricht
+                                </Button>
+                            }
+                        />
                         <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
                             <DialogTrigger asChild>
                                 <Button variant="secondary" className="flex-1">
