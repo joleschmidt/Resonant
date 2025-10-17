@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useUser } from '@/hooks/auth/useUser';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,9 +21,12 @@ import {
     Calendar,
     Euro,
     ArrowLeft,
-    ChevronRight
+    ChevronRight,
+    Pencil
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 
 interface ListingDetails {
@@ -105,7 +107,6 @@ const getCategoryLabel = (category: string) => {
 
 export default function ListingDetailPage() {
     const params = useParams();
-    const { user } = useUser();
     const [listing, setListing] = useState<ListingDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -115,13 +116,17 @@ export default function ListingDetailPage() {
     const [showBuyNow, setShowBuyNow] = useState(false);
     const [offerAmount, setOfferAmount] = useState('');
     const [offerMessage, setOfferMessage] = useState('');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoritesCount, setFavoritesCount] = useState<number | null>(null);
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+    const [showFullDescription, setShowFullDescription] = useState(false);
     const router = useRouter();
 
 
     useEffect(() => {
         const fetchListing = async () => {
             try {
-                const response = await fetch(`/api/listings/${params.id}`);
+                const response = await fetch(`/api/listings/${params.id}`, { headers: { 'x-increment-view': '1' } });
 
                 if (!response.ok) {
                     if (response.status === 404) {
@@ -132,6 +137,7 @@ export default function ListingDetailPage() {
 
                 const data = await response.json();
                 setListing(data.data);
+                // GET already increments views
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
             } finally {
@@ -142,6 +148,23 @@ export default function ListingDetailPage() {
         if (params.id) {
             fetchListing();
         }
+    }, [params.id]);
+
+    // Fetch favorite status/count after listing is loaded
+    useEffect(() => {
+        const fetchFavoriteStatus = async () => {
+            if (!params.id) return;
+            try {
+                const res = await fetch(`/api/listings/${params.id}/favorite`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const json = await res.json();
+                setIsFavorite(!!json.is_favorite);
+                if (typeof json.favorites_count === 'number') setFavoritesCount(json.favorites_count);
+            } catch {
+                // ignore
+            }
+        };
+        fetchFavoriteStatus();
     }, [params.id]);
 
     if (loading) {
@@ -185,46 +208,90 @@ export default function ListingDetailPage() {
     const mainImage = listing.images?.[0];
     const conditionLabel = getConditionLabel(listing.condition);
     const categoryLabel = getCategoryLabel(listing.category);
-    const isOwner = user && listing.seller_id === user.id;
+    const isOwner = false;
 
     const handlePriceOffer = async () => {
-        if (!user) {
-            alert('Bitte melde dich an, um ein Angebot zu machen.');
-            return;
-        }
 
         if (!offerAmount || parseFloat(offerAmount) <= 0) {
             alert('Bitte gib einen gültigen Betrag ein.');
             return;
         }
 
-        // TODO: Implement price offer API call
-        alert(`Preisvorschlag von ${offerAmount}€ wurde gesendet!`);
+        try {
+            const res = await fetch(`/api/listings/${params.id}/offer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: parseFloat(offerAmount), message: offerMessage || undefined })
+            });
+            const json = await res.json();
+            if (!res.ok) {
+                alert(json?.error || 'Fehler beim Senden des Angebots');
+                return;
+            }
+            alert('Preisvorschlag gesendet. Status: ' + (json.status || 'pending'));
+        } catch (e) {
+            alert('Fehler beim Senden des Angebots');
+        }
         setShowPriceOffer(false);
         setOfferAmount('');
         setOfferMessage('');
     };
 
     const handleBuyNow = async () => {
-        if (!user) {
-            alert('Bitte melde dich an, um zu kaufen.');
-            return;
-        }
 
         // TODO: Implement buy now API call
         alert('Kaufprozess gestartet! Du wirst zur Zahlungsseite weitergeleitet.');
         setShowBuyNow(false);
     };
 
+    const handleToggleFavorite = async () => {
+        if (!listing) return;
+        if (isTogglingFavorite) return;
+        setIsTogglingFavorite(true);
+        const prev = isFavorite;
+        const prevCount = favoritesCount;
+        // optimistic
+        setIsFavorite(!prev);
+        if (prevCount != null) setFavoritesCount(prev ? Math.max(0, prevCount - 1) : prevCount + 1);
+        try {
+            const res = await fetch(`/api/listings/${listing.id}/favorite`, { method: prev ? 'DELETE' : 'POST' });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json?.error || 'Favorite failed');
+            if (typeof json.favorites_count === 'number') setFavoritesCount(json.favorites_count);
+            if (typeof json.is_favorite === 'boolean') setIsFavorite(json.is_favorite);
+        } catch (e) {
+            // rollback
+            setIsFavorite(prev);
+            setFavoritesCount(prevCount ?? null);
+            alert('Aktion fehlgeschlagen. Bitte später erneut versuchen.');
+        } finally {
+            setIsTogglingFavorite(false);
+        }
+    };
+
+    const handleShare = async () => {
+        const url = typeof window !== 'undefined' ? window.location.href : '';
+        const title = listing?.title || 'Anzeige';
+        try {
+            if (navigator.share) {
+                await navigator.share({ title, url });
+            } else if (navigator.clipboard && url) {
+                await navigator.clipboard.writeText(url);
+                alert('Link kopiert');
+            } else {
+                prompt('Link kopieren:', url);
+            }
+        } catch {
+            // user cancelled or share failed; ignore
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-8">
-                {/* Back Button */}
+        <div className="min-h-screen bg-background pb-28 lg:pb-12 xl:pb-16">
+            <div className="container mx-auto px-4 py-4">
 
-
-
-                {/* Breadcrumb + right-aligned Edit */}
-                <div className="mb-6 flex items-center justify-between">
+                {/* Breadcrumb + right-aligned Edit (hidden on mobile) */}
+                <div className="mb-3 lg:mb-4 xl:mb-4 flex items-center justify-between hidden sm:flex">
                     <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <Button
                             variant="ghost"
@@ -237,19 +304,19 @@ export default function ListingDetailPage() {
                         </Button>
                         <a
                             href="/listings"
-                            className="hover:text-foreground transition-colors"
+                            className="hover:text-foreground transition-colors hidden sm:inline"
                         >
                             Anzeigen
                         </a>
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-4 h-4 hidden sm:inline" />
                         <a
                             href={`/listings?category=${listing.category}`}
-                            className="hover:text-foreground transition-colors"
+                            className="hover:text-foreground transition-colors hidden sm:inline"
                         >
                             {categoryLabel}
                         </a>
-                        <ChevronRight className="w-4 h-4" />
-                        <span className="text-foreground truncate max-w-md">
+                        <ChevronRight className="w-4 h-4 hidden sm:inline" />
+                        <span className="text-foreground truncate max-w-md hidden sm:inline">
                             {listing.title}
                         </span>
                     </nav>
@@ -264,29 +331,44 @@ export default function ListingDetailPage() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 min-h-[90vh] pb-2">
                     {/* Images */}
-                    <div className="space-y-4">
-                        {/* Main Image */}
-                        <button className="aspect-square rounded-lg overflow-hidden bg-muted w-full" onClick={() => setLightboxOpen(true)}>
-                            <img
-                                src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
-                                alt={listing.title}
-                                className="w-full h-full object-cover"
-                            />
-                        </button>
+                    <div className="h-full flex flex-col gap-3 pb-2 max-h-[60vh] sm:max-h-[70vh] lg:max-h-[84.65vh]">
+                        {/* Main Image with mobile overlay controls */}
+                        <div className="relative flex-1 min-h-0">
+                            <button className="block w-full h-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
+                                <img
+                                    src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
+                                    alt={listing.title}
+                                    className="w-full h-full object-contain"
+                                />
+                            </button>
+                            {/* Mobile-only top overlay icons */}
+                            <div className="absolute inset-0 pointer-events-none sm:hidden">
+                                <div className="flex items-start justify-between p-3">
+                                    <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Zurück" onClick={() => router.back()}>
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </Button>
+                                    {isOwner && (
+                                        <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Bearbeiten" onClick={() => window.location.href = `/listings/${listing.id}/edit`}>
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Thumbnail Images */}
                         {listing.images && listing.images.length > 1 && (
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="flex gap-2 h-20 overflow-x-auto lg:grid lg:grid-cols-4 lg:gap-2 lg:h-24 lg:overflow-visible">
                                 {listing.images.map((image, index) => (
                                     <button
                                         key={index}
                                         onClick={() => setCurrentImageIndex(index)}
-                                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
+                                        className={`rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
                                             ? 'border-primary'
                                             : 'border-transparent hover:border-muted-foreground'
-                                            }`}
+                                            } w-28 h-20 flex-shrink-0 lg:w-auto lg:h-auto`}
                                     >
                                         <img
                                             src={image}
@@ -300,7 +382,7 @@ export default function ListingDetailPage() {
                     </div>
 
                     {/* Details */}
-                    <div className="space-y-6">
+                    <div className="h-full flex flex-col space-y-4 pb-2">
                         {/* Header */}
                         <div>
                             <div className="flex items-center gap-2 mb-2">
@@ -310,9 +392,9 @@ export default function ListingDetailPage() {
                                 </Badge>
                             </div>
 
-                            <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
+                            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{listing.title}</h1>
 
-                            <div className="flex items-center gap-4 text-muted-foreground">
+                            <div className="flex items-center gap-4 text-muted-foreground flex-wrap gap-y-1">
                                 <div className="flex items-center gap-1">
                                     <MapPin className="w-4 h-4" />
                                     <span>{listing.location_city}, {listing.location_state}</span>
@@ -322,15 +404,16 @@ export default function ListingDetailPage() {
                                     <span>{new Date(listing.created_at).toLocaleDateString('de-DE')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <span className="w-4 h-4 flex items-center justify-center">👁</span>
                                     <span>{listing.views} Aufrufe</span>
                                 </div>
                             </div>
+
+                            {/* Mobile quick actions moved into price container */}
                         </div>
 
                         {/* Price */}
                         <Card>
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 sm:p-6">
                                 <div className="flex items-baseline gap-3 mb-2">
                                     <span className="text-3xl font-bold">{listing.price.toLocaleString('de-DE')} €</span>
                                     {listing.original_price && (
@@ -341,25 +424,47 @@ export default function ListingDetailPage() {
                                 </div>
 
                                 {listing.price_negotiable && (
-                                    <p className="text-sm text-muted-foreground mb-4">Verhandlungsbasis</p>
+                                    <p className="text-sm text-muted-foreground mb-2 sm:mb-4">Verhandlungsbasis</p>
                                 )}
 
-                                <div className="space-y-3">
-                                    <div className="flex gap-2">
+                                <div className="space-y-0 lg:space-y-3">
+                                    {/* Mobile actions in price container: like, share, buy now */}
+                                    <div className="flex items-center justify-between gap-2 lg:hidden mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Button variant={isFavorite ? 'destructive' : 'outline'} size="icon" aria-label="Merken" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
+                                                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                                            </Button>
+                                            <Button variant="outline" size="icon" aria-label="Teilen" onClick={handleShare}>
+                                                <Share2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                        <Dialog open={showBuyNow} onOpenChange={setShowBuyNow}>
+                                            <DialogTrigger asChild>
+                                                <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                                                    <Package className="w-4 h-4 mr-2" />
+                                                    Sofort kaufen
+                                                </Button>
+                                            </DialogTrigger>
+                                        </Dialog>
+                                    </div>
+                                    <div className="hidden lg:flex gap-2">
                                         <Button size="lg" className="flex-1">
                                             <MessageCircle className="w-4 h-4 mr-2" />
                                             Nachricht senden
                                         </Button>
-                                        <Button variant="outline" size="lg">
-                                            <Heart className="w-4 h-4" />
+                                        <Button variant={isFavorite ? 'destructive' : 'outline'} size="lg" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
+                                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                                            {typeof favoritesCount === 'number' && (
+                                                <span className="ml-2 text-sm">{favoritesCount}</span>
+                                            )}
                                         </Button>
-                                        <Button variant="outline" size="lg">
+                                        <Button variant="outline" size="lg" onClick={handleShare}>
                                             <Share2 className="w-4 h-4" />
                                         </Button>
                                     </div>
 
                                     {/* Price offer and buy now buttons */}
-                                    <div className="flex gap-2">
+                                    <div className="hidden lg:flex gap-2">
                                         <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
                                             <DialogTrigger asChild>
                                                 <Button variant="secondary" size="lg" className="flex-1">
@@ -439,6 +544,9 @@ export default function ListingDetailPage() {
                                                             {listing.pickup_available && (
                                                                 <li>✓ Abholung möglich in {listing.location_city}</li>
                                                             )}
+                                                            {Array.isArray(listing.shipping_methods) && listing.shipping_methods.length > 0 && (
+                                                                <li>Versandarten: {listing.shipping_methods.join(', ')}</li>
+                                                            )}
                                                         </ul>
                                                     </div>
                                                     <div className="flex gap-2">
@@ -483,29 +591,22 @@ export default function ListingDetailPage() {
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                {listing.profiles.seller_rating && listing.profiles.seller_rating !== 0 && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                                        <span>{listing.profiles.seller_rating.toFixed(1)}</span>
-                                                    </div>
-                                                )}
-                                                {listing.profiles.total_sales && listing.profiles.total_sales !== 0 && (
-                                                    <span>{listing.profiles.total_sales} Verkäufe</span>
-                                                )}
                                                 <span>Mitglied seit {new Date(listing.profiles.created_at).getFullYear()}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <Button variant="outline" className="w-full">
-                                        Alle Anzeigen von {listing.profiles.username}
+                                    <Button variant="outline" className="w-full" asChild>
+                                        <a href={`/users/${listing.profiles.username}`}>
+                                            Alle Anzeigen von {listing.profiles.username}
+                                        </a>
                                     </Button>
                                 </CardContent>
                             </Card>
                         )}
 
                         {/* Shipping & Pickup */}
-                        <Card>
+                        <Card className="mt-auto">
                             <CardContent className="p-6">
                                 <h3 className="font-semibold mb-4">Versand & Abholung</h3>
                                 <div className="space-y-3">
@@ -542,12 +643,30 @@ export default function ListingDetailPage() {
                     </div>
                 </div>
 
+                {/* Mobile sticky action bar */}
+                <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden">
+                    <div className="container mx-auto px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] flex gap-2">
+                        <Button className="flex-1">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Nachricht
+                        </Button>
+                        <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
+                            <DialogTrigger asChild>
+                                <Button variant="secondary" className="flex-1">
+                                    <Euro className="w-4 h-4 mr-2" />
+                                    Preisvorschlag
+                                </Button>
+                            </DialogTrigger>
+                        </Dialog>
+                    </div>
+                </div>
+
                 {/* Lightbox */}
                 {lightboxOpen && (
                     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
                         <div className="flex items-center justify-between p-4 text-white">
-                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                             <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
+                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                         </div>
                         <div className="relative flex-1 flex items-center justify-center select-none overflow-hidden">
                             <img
@@ -574,13 +693,52 @@ export default function ListingDetailPage() {
                 )}
 
                 {/* Description */}
-                <div className="mt-8">
+                <div className="mt-2 lg:mt-0 xl:mt-0">
                     <Card>
                         <CardContent className="p-6">
                             <h2 className="text-xl font-semibold mb-4">Beschreibung</h2>
                             <div className="prose max-w-none">
-                                <p className="whitespace-pre-wrap">{listing.description}</p>
+                                {listing.description && listing.description.length > 600 ? (
+                                    <>
+                                        <p className={`whitespace-pre-wrap ${showFullDescription ? '' : 'line-clamp-[12]'}`}>
+                                            {listing.description}
+                                        </p>
+                                        <div className="mt-3">
+                                            <Button variant="ghost" size="sm" onClick={() => setShowFullDescription((v) => !v)}>
+                                                {showFullDescription ? 'Weniger anzeigen' : 'Weiter lesen'}
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="whitespace-pre-wrap">{listing.description}</p>
+                                )}
                             </div>
+                            {listing.condition_notes && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Zustand</h3>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{listing.condition_notes}</p>
+                                </div>
+                            )}
+                            {Array.isArray(listing.tags) && listing.tags.length > 0 && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Tags</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {listing.tags.map((t, i) => (
+                                            <Badge key={i} variant="secondary">{t}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {Array.isArray(listing.accessories) && listing.accessories.length > 0 && (
+                                <div className="mt-4">
+                                    <h3 className="font-semibold mb-2">Zubehör</h3>
+                                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                                        {listing.accessories.map((a, i) => (
+                                            <li key={i}>{a}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -593,7 +751,7 @@ export default function ListingDetailPage() {
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-xl font-semibold">Technische Details</h2>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                     {Object.entries(listing.details)
                                         .filter(([key, value]) => {
                                             // Only show relevant fields with actual values

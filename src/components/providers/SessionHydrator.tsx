@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 export function SessionHydrator() {
     const setUser = useAuthStore((state) => state.setUser);
+    const setProfile = useAuthStore((state) => state.setProfile);
     const setIsLoading = useAuthStore((state) => state.setIsLoading);
 
     useEffect(() => {
@@ -27,16 +28,30 @@ export function SessionHydrator() {
                 const resp = await fetch('/api/me', { credentials: 'include' });
                 const data = await resp.json().catch(() => ({} as any));
                 const userFromApi = data?.user ?? null;
+                const profileFromApi = data?.profile ?? null;
 
                 // Fallback to client getSession
                 let finalUser = userFromApi;
+                let finalProfile = profileFromApi;
+
                 if (!finalUser) {
                     const supabase = createClient();
                     const { data: { session } } = await supabase.auth.getSession();
                     finalUser = session?.user ?? null;
+
+                    // Fetch profile if we have a user
+                    if (finalUser) {
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', finalUser.id)
+                            .single();
+                        finalProfile = profile ?? null;
+                    }
                 }
 
                 console.log('🔵 SessionHydrator - session:', finalUser?.id ? `FOUND (${finalUser.email})` : 'NONE');
+                console.log('🔵 SessionHydrator - profile:', finalProfile?.username ? `FOUND (${finalProfile.username})` : 'NONE');
 
                 if (cancelled) {
                     console.log('🔵 SessionHydrator - cancelled, not updating store');
@@ -44,11 +59,13 @@ export function SessionHydrator() {
                 }
 
                 setUser(finalUser);
-                console.log('🔵 SessionHydrator - store updated, user:', finalUser ? 'SET' : 'NULL');
+                setProfile(finalProfile);
+                console.log('🔵 SessionHydrator - store updated, user:', finalUser ? 'SET' : 'NULL', 'profile:', finalProfile ? 'SET' : 'NULL');
             } catch (error) {
                 console.error('🔴 SessionHydrator - ERROR:', error);
                 if (!cancelled) {
                     setUser(null);
+                    setProfile(null);
                 }
             } finally {
                 if (!cancelled) {
@@ -72,10 +89,22 @@ export function SessionHydrator() {
         const supabase = createClient();
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (_event, session) => {
             console.log('🔵 SessionHydrator - auth state changed:', session?.user?.id ? 'LOGGED IN' : 'LOGGED OUT');
             if (!cancelled) {
                 setUser(session?.user ?? null);
+
+                // Fetch profile when auth state changes
+                if (session?.user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    setProfile(profile ?? null);
+                } else {
+                    setProfile(null);
+                }
             }
         });
 
@@ -85,7 +114,7 @@ export function SessionHydrator() {
             subscription.unsubscribe();
             console.log('🔵 SessionHydrator - CLEANUP');
         };
-    }, [setUser, setIsLoading]);
+    }, [setUser, setProfile, setIsLoading]);
 
     return null;
 }

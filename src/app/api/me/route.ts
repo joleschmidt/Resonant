@@ -5,11 +5,18 @@ export async function GET() {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
 
-    if (error) {
-        return NextResponse.json({ user: null }, { status: 200 });
+    if (error || !user) {
+        return NextResponse.json({ user: null, profile: null }, { status: 200 });
     }
 
-    return NextResponse.json({ user: user ?? null }, { status: 200 });
+    // Fetch profile from database
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    return NextResponse.json({ user, profile: profile ?? null }, { status: 200 });
 }
 
 
