@@ -27,6 +27,9 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                 if (!res.ok) throw new Error('Failed to fetch');
                 const json = await res.json();
                 setMessages(json.data || []);
+
+                // Trigger a global event to refresh unread badge (messages were marked read in API)
+                window.dispatchEvent(new Event('unread-updated'));
             } catch (error) {
                 console.error('Failed to fetch messages:', error);
             } finally {

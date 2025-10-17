@@ -18,10 +18,66 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function Header() {
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const pathname = usePathname();
+
+  async function fetchUnread() {
+    try {
+      if (!user) {
+        setUnreadCount(0);
+        return;
+      }
+      const res = await fetch('/api/conversations/unread-count', { cache: 'no-store' });
+      if (!res.ok) return;
+      const json = await res.json();
+      setUnreadCount(json.data || 0);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      if (isMounted) await fetchUnread();
+    })();
+
+    // Poll occasionally for simplicity; can be replaced with realtime later
+    const id = setInterval(fetchUnread, 30_000);
+
+    const onFocus = () => fetchUnread();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+
+    // Immediate reaction to conversation actions
+    const onUnreadRefresh = () => fetchUnread();
+    const onUnreadDecrement = (e: Event) => {
+      const delta = (e as CustomEvent<number>).detail ?? 1;
+      setUnreadCount((c) => Math.max(0, c - delta));
+    };
+    window.addEventListener('unread-refresh', onUnreadRefresh as EventListener);
+    window.addEventListener('unread-decrement', onUnreadDecrement as EventListener);
+
+    return () => {
+      isMounted = false;
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('unread-refresh', onUnreadRefresh as EventListener);
+      window.removeEventListener('unread-decrement', onUnreadDecrement as EventListener);
+    };
+  }, [user?.id]);
+
+  // Refetch whenever the route changes (e.g., opening a conversation marks as read)
+  useEffect(() => {
+    fetchUnread();
+  }, [pathname]);
 
   console.log('🟢 Header - user:', user?.id ? `LOGGED IN (${user.email})` : 'NOT LOGGED IN', 'loading:', isLoading);
 
@@ -51,10 +107,15 @@ export function Header() {
           {user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
-                <Link href="/messages">
+                <Link href="/messages" className="relative">
                   <Button variant="ghost" size="icon" aria-label="Nachrichten">
                     <MessageSquare className="w-5 h-5" />
                   </Button>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] leading-none w-5 h-5">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <UserMenu />
               </div>
@@ -81,7 +142,7 @@ export function Header() {
                       <Link href="/profile">Profil</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/messages">Nachrichten</Link>
+                      <Link href="/messages">Nachrichten{unreadCount > 0 ? ` (${Math.min(unreadCount, 9)}${unreadCount > 9 ? '+' : ''})` : ''}</Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
