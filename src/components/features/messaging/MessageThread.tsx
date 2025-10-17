@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,7 +17,6 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const { userId } = useUser();
 
     useEffect(() => {
@@ -41,10 +40,6 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
         const interval = setInterval(fetchMessages, 5000); // Poll every 5s
         return () => clearInterval(interval);
     }, [conversationId]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
 
     const handleSend = async () => {
         if (!content.trim()) return;
@@ -111,10 +106,9 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                         </div>
                     );
                 })}
-                <div ref={messagesEndRef} />
             </div>
             <div className="border-t p-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-stretch">
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
@@ -125,11 +119,11 @@ export function MessageThread({ conversationId }: MessageThreadProps) {
                             }
                         }}
                         placeholder="Nachricht schreiben..."
-                        className="flex-1 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                        rows={2}
+                        className="flex-1 px-3 pt-2 pb-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary h-10"
+                        rows={1}
                         maxLength={2000}
                     />
-                    <Button onClick={handleSend} disabled={!content.trim() || sending} size="icon">
+                    <Button onClick={handleSend} disabled={!content.trim() || sending} className="h-10 w-10" size="icon">
                         <Send className="w-4 h-4" />
                     </Button>
                 </div>
