@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import { getUserByUsername } from '@/lib/supabase/server';
 import { UserProfileHeader } from '@/components/features/profile/UserProfileHeader';
 import { UserStatsStrip } from '@/components/features/profile/UserStatsStrip';
-import { UserAbout } from '@/components/features/profile/UserAbout';
 import { ListingCard } from '@/components/features/listings/ListingCard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -26,13 +25,14 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     return (
         <div className="container py-8">
             <div className="mx-auto max-w-5xl space-y-6">
-                <UserProfileHeader user={user as any} isSelf={false} />
-                <UserStatsStrip
-                    rating={user.seller_rating}
-                    sales={user.total_sales}
-                    purchases={user.total_purchases}
-                />
-                <UserAbout bio={user.bio} />
+                <div className="space-y-0">
+                    <UserProfileHeader user={user as any} isSelf={false} />
+                    <UserStatsStrip
+                        rating={user.seller_rating}
+                        sales={user.total_sales}
+                        purchases={user.total_purchases}
+                    />
+                </div>
                 {Array.isArray(listings) && listings.length > 0 && (
                     <div>
                         <h2 className="mb-3 text-lg font-semibold">Anzeigen von {user.username}</h2>

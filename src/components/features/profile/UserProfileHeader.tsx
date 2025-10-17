@@ -34,50 +34,50 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
         year: 'numeric',
     });
 
-    const banner = coverUrl || fallbackCovers[0];
-    const hasCover = !!coverUrl;
+    const banner = coverUrl || null;
+    const hasCover = false; // banner disabled on all viewports
 
     return (
         <div className={cn('rounded-t-xl border-b-0 border overflow-hidden', className)}>
-            <div className="relative h-32 w-full bg-muted sm:h-40">
-                {hasCover ? (
-                    <>
-                        <Image
-                            src={banner}
-                            alt="Profil-Cover"
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
-                    </>
-                ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-blue-50 to-indigo-100" />
+            <div className="relative px-4 pb-3 pt-4 sm:px-6 sm:pt-6 sm:pb-4">
+                {/* Edit button top-right */}
+                {isSelf && editHref && (
+                    <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+                        <Button asChild size="sm" className="sm:inline-flex hidden">
+                            <Link href={editHref}>Bearbeiten</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" className="sm:hidden">
+                            <Link href={editHref}>
+                                <Pencil className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
                 )}
-            </div>
 
-            <div className="px-4 pb-4 sm:px-6">
-                <div className="flex items-end gap-4">
-                    <Avatar className="-mt-8 h-16 w-16 ring-4 ring-background sm:-mt-10 sm:h-20 sm:w-20">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-4">
+                    {/* Avatar - centered and above username on mobile; left on desktop */}
+                    <Avatar className="h-24 w-24 ring-4 ring-background sm:h-20 sm:w-20">
                         <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
                         <AvatarFallback className="text-xl">{initials}</AvatarFallback>
                     </Avatar>
 
-                    <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex-1 pt-2 text-center sm:text-left">
+                        <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center">
                             <h1 className="text-2xl font-bold sm:text-3xl">{user.username}</h1>
-                            <VerificationBadge status={user.verification_status} />
-                            {user.account_type && (
-                                <Badge variant="secondary" className="ml-1">
-                                    {user.account_type.charAt(0).toUpperCase() + user.account_type.slice(1)}
-                                </Badge>
-                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                                <VerificationBadge status={user.verification_status} />
+                                {user.account_type && (
+                                    <Badge variant="secondary">
+                                        {user.account_type.charAt(0).toUpperCase() + user.account_type.slice(1)}
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                         {user.full_name && (
                             <p className="text-sm text-muted-foreground">{user.full_name}</p>
                         )}
 
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                        <div className="mt-1 flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-sm text-muted-foreground">
                             {user.location && (
                                 <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{user.location}</span>
                             )}
@@ -85,11 +85,11 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
                         </div>
                     </div>
 
-                    <div className="ml-auto flex items-center gap-2">
-                        {!isSelf && (
+                    <div className="mt-2 w-full sm:mt-0 sm:w-auto sm:ml-auto flex flex-wrap gap-2 justify-center sm:justify-end">
+                        {isSelf ? null : (
                             <>
-                                <Button size="sm">Nachricht</Button>
-                                <Button size="sm" variant="outline" disabled>
+                                <Button size="sm" className="flex-1 sm:flex-none">Nachricht</Button>
+                                <Button size="sm" variant="outline" disabled className="flex-1 sm:flex-none">
                                     Folgen
                                 </Button>
                             </>
@@ -98,38 +98,11 @@ export function UserProfileHeader({ user, isSelf, editHref, className, coverUrl 
                 </div>
 
                 {user.bio && (
-                    <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-1 sm:mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground text-center sm:text-left">
                         {user.bio}
                     </p>
                 )}
 
-                {/* Account Info */}
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg border p-4">
-                        <h3 className="text-sm font-medium text-muted-foreground">Account-Typ</h3>
-                        <p className="text-lg font-semibold capitalize">{user.account_type}</p>
-                        <p className="text-xs text-muted-foreground">
-                            {user.account_type === 'basic' && 'Upgrade für mehr Funktionen'}
-                            {user.account_type === 'verified' && 'Bis zu 5 aktive Anzeigen'}
-                            {user.account_type === 'premium' && 'Bis zu 20 aktive Anzeigen + Analytics'}
-                            {user.account_type === 'store' && 'Bis zu 100 Anzeigen + Custom Branding'}
-                        </p>
-                    </div>
-
-                    <div className="rounded-lg border p-4">
-                        <h3 className="text-sm font-medium text-muted-foreground">Verifizierung</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {user.verification_status === 'unverified' &&
-                                'Verifiziere deine E-Mail, um alle Funktionen freizuschalten.'}
-                            {user.verification_status === 'email_verified' &&
-                                'E-Mail verifiziert. Verifiziere deine Telefonnummer für mehr Vertrauen.'}
-                            {user.verification_status === 'phone_verified' &&
-                                'E-Mail und Telefon verifiziert.'}
-                            {user.verification_status === 'fully_verified' &&
-                                'Vollständig verifiziert! Du genießt maximales Vertrauen.'}
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
     );

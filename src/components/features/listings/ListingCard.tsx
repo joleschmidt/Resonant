@@ -132,7 +132,7 @@ export function ListingCard({
 
                             {/* Seller Info */}
                             {showSeller && 'seller' in listing && listing.seller && (
-                                <div className="flex items-center gap-2 pt-2 border-t">
+                                <Link href={`/users/${listing.seller.username}`} className="flex items-center gap-2 pt-2 border-t hover:opacity-90">
                                     <Avatar className="h-6 w-6">
                                         <AvatarImage src={listing.seller.avatar_url || undefined} />
                                         <AvatarFallback className="text-xs">
@@ -150,7 +150,7 @@ export function ListingCard({
                                             <span>{listing.seller.total_sales} Verkäufe</span>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             )}
 
                             {/* Stats */}

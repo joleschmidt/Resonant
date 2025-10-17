@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useUser } from '@/hooks/auth/useUser';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,8 @@ import {
     Pencil
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 
 interface ListingDetails {
@@ -106,7 +107,6 @@ const getCategoryLabel = (category: string) => {
 
 export default function ListingDetailPage() {
     const params = useParams();
-    const { user } = useUser();
     const [listing, setListing] = useState<ListingDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -208,13 +208,9 @@ export default function ListingDetailPage() {
     const mainImage = listing.images?.[0];
     const conditionLabel = getConditionLabel(listing.condition);
     const categoryLabel = getCategoryLabel(listing.category);
-    const isOwner = user && listing.seller_id === user.id;
+    const isOwner = false;
 
     const handlePriceOffer = async () => {
-        if (!user) {
-            alert('Bitte melde dich an, um ein Angebot zu machen.');
-            return;
-        }
 
         if (!offerAmount || parseFloat(offerAmount) <= 0) {
             alert('Bitte gib einen gültigen Betrag ein.');
@@ -242,10 +238,6 @@ export default function ListingDetailPage() {
     };
 
     const handleBuyNow = async () => {
-        if (!user) {
-            alert('Bitte melde dich an, um zu kaufen.');
-            return;
-        }
 
         // TODO: Implement buy now API call
         alert('Kaufprozess gestartet! Du wirst zur Zahlungsseite weitergeleitet.');
@@ -254,10 +246,6 @@ export default function ListingDetailPage() {
 
     const handleToggleFavorite = async () => {
         if (!listing) return;
-        if (!user) {
-            alert('Bitte melde dich an, um Anzeigen zu merken.');
-            return;
-        }
         if (isTogglingFavorite) return;
         setIsTogglingFavorite(true);
         const prev = isFavorite;
@@ -609,7 +597,7 @@ export default function ListingDetailPage() {
                                     </div>
 
                                     <Button variant="outline" className="w-full" asChild>
-                                        <a href={`/listings?seller_id=${listing.seller_id}`}>
+                                        <a href={`/users/${listing.profiles.username}`}>
                                             Alle Anzeigen von {listing.profiles.username}
                                         </a>
                                     </Button>

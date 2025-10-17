@@ -4,7 +4,7 @@
  */
 
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { Star, PackageCheck, ShoppingBag, Users } from 'lucide-react';
 
 type Stats = {
@@ -19,25 +19,29 @@ export function UserStatsStrip({ rating = 0, sales = 0, purchases = 0, followers
     const items = [
         { icon: Star, label: 'Bewertung', value: (rating || 0).toFixed(1) },
         { icon: PackageCheck, label: 'Verkäufe', value: sales || 0 },
-        { icon: ShoppingBag, label: 'Käufe', value: purchases || 0 },
         { icon: Users, label: 'Follower', value: followers || 0 },
-        { icon: Users, label: 'Folgt', value: following || 0 },
     ];
 
     return (
-        <Card className="flex divide-x overflow-hidden rounded-b-xl rounded-t-none border-t-0">
-            {items.map((it, idx) => (
-                <div key={it.label} className="flex flex-1 items-center gap-3 p-4">
-                    <it.icon className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                        <div className="text-xl font-semibold leading-none">{it.value}</div>
-                        <div className="text-xs text-muted-foreground">{it.label}</div>
+        <Card className="overflow-hidden rounded-b-xl rounded-t-none border-t-0">
+            <div className="grid grid-cols-3">
+                {items.map((it, idx) => (
+                    <div
+                        key={it.label}
+                        className={cn(
+                            'flex flex-col items-center justify-center gap-0.5 p-1 sm:p-2.5',
+                            idx >= 1 && 'border-t sm:border-t-0 sm:border-l'
+                        )}
+                    >
+                        <it.icon className="h-3.5 w-3.5 text-muted-foreground sm:h-5 sm:w-5" />
+                        <div className="text-center">
+                            <div className="text-[13px] sm:text-base font-semibold leading-tight">{it.value}</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">{it.label}</div>
+                        </div>
                     </div>
-                    {idx < items.length - 1 && <Separator className="ml-auto h-8" orientation="vertical" />}
-                </div>
-            ))}
+                ))}
+            </div>
         </Card>
     );
 }
-
 
