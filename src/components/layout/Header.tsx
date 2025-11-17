@@ -82,37 +82,42 @@ export function Header() {
   console.log('🟢 Header - user:', user?.id ? `LOGGED IN (${user.email})` : 'NOT LOGGED IN', 'loading:', isLoading);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold">RESONANT</span>
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">RESONANT</span>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-1 md:flex">
             <Link href="/listings">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="font-medium">
                 Anzeigen
               </Button>
             </Link>
             <Link href="/about">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="font-medium">
                 Über uns
               </Button>
             </Link>
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {user ? (
             <>
-              <div className="hidden md:flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/listings/create">
+                  <Button size="sm" className="font-medium">
+                    Anzeige erstellen
+                  </Button>
+                </Link>
                 <Link href="/messages" className="relative">
                   <Button variant="ghost" size="icon" aria-label="Nachrichten">
                     <MessageSquare className="w-5 h-5" />
                   </Button>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] leading-none w-5 h-5">
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none w-5 h-5 shadow-sm">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -150,7 +155,12 @@ export function Header() {
             </>
           ) : (
             <>
-              <div className="hidden md:flex">
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/listings">
+                  <Button variant="ghost" size="sm" className="font-medium">
+                    Anzeigen durchsuchen
+                  </Button>
+                </Link>
                 <AuthButton />
               </div>
               <div className="md:hidden">

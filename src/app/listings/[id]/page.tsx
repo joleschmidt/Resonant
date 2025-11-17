@@ -27,6 +27,7 @@ import {
     Pencil
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useListing } from '@/hooks/listings/useListing';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,32 +126,20 @@ export default function ListingDetailPage() {
     const router = useRouter();
 
 
+    // Use React Query hook for listing
+    const { data: listingData, isLoading: listingLoading, error: listingError } = useListing(params.id as string, { incrementView: true });
+
     useEffect(() => {
-        const fetchListing = async () => {
-            try {
-                const response = await fetch(`/api/listings/${params.id}`, { headers: { 'x-increment-view': '1' } });
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('Anzeige nicht gefunden');
-                    }
-                    throw new Error('Fehler beim Laden der Anzeige');
-                }
-
-                const data = await response.json();
-                setListing(data.data);
-                // GET already increments views
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (params.id) {
-            fetchListing();
+        if (listingData?.data) {
+            setListing(listingData.data);
+            setLoading(false);
+        } else if (listingError) {
+            setError(listingError instanceof Error ? listingError.message : 'Ein Fehler ist aufgetreten');
+            setLoading(false);
+        } else if (listingLoading) {
+            setLoading(true);
         }
-    }, [params.id]);
+    }, [listingData, listingError, listingLoading]);
 
     // Fetch favorite status/count after listing is loaded
     useEffect(() => {
@@ -331,12 +320,12 @@ export default function ListingDetailPage() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 min-h-[90vh] pb-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 pb-2">
                     {/* Images */}
-                    <div className="h-full flex flex-col gap-3 pb-2 max-h-[60vh] sm:max-h-[70vh] lg:max-h-[84.65vh]">
+                    <div className="h-full flex flex-col gap-3 pb-2">
                         {/* Main Image with mobile overlay controls */}
                         <div className="relative flex-1 min-h-0">
-                            <button className="block w-full h-full rounded-lg overflow-hidden bg-muted aspect-[4/3] sm:aspect-[16/9] lg:aspect-auto" onClick={() => setLightboxOpen(true)}>
+                            <button className="block w-full h-full rounded-lg overflow-hidden bg-muted" onClick={() => setLightboxOpen(true)}>
                                 <img
                                     src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                     alt={listing.title}
@@ -360,7 +349,7 @@ export default function ListingDetailPage() {
 
                         {/* Thumbnail Images */}
                         {listing.images && listing.images.length > 1 && (
-                            <div className="flex gap-2 h-20 overflow-x-auto lg:grid lg:grid-cols-4 lg:gap-2 lg:h-24 lg:overflow-visible">
+                            <div className="flex gap-2 h-20 overflow-x-auto lg:grid lg:grid-cols-4 lg:gap-2 lg:h-24 lg:overflow-visible flex-shrink-0">
                                 {listing.images.map((image, index) => (
                                     <button
                                         key={index}
@@ -431,10 +420,23 @@ export default function ListingDetailPage() {
                                     {/* Mobile actions in price container: like, share, buy now */}
                                     <div className="flex items-center justify-between gap-2 lg:hidden mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Button variant={isFavorite ? 'destructive' : 'outline'} size="icon" aria-label="Merken" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
+                                            <Button 
+                                                variant={isFavorite ? 'destructive' : 'outline'} 
+                                                size="icon" 
+                                                aria-label="Merken" 
+                                                onClick={handleToggleFavorite} 
+                                                disabled={isTogglingFavorite}
+                                                type="button"
+                                            >
                                                 <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
                                             </Button>
-                                            <Button variant="outline" size="icon" aria-label="Teilen" onClick={handleShare}>
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                aria-label="Teilen" 
+                                                onClick={handleShare}
+                                                type="button"
+                                            >
                                                 <Share2 className="w-4 h-4" />
                                             </Button>
                                         </div>
@@ -460,15 +462,26 @@ export default function ListingDetailPage() {
                                                 </Button>
                                             }
                                         />
-                                        <Button variant={isFavorite ? 'destructive' : 'outline'} size="lg" onClick={handleToggleFavorite} disabled={isTogglingFavorite}>
-                                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                                            {typeof favoritesCount === 'number' && (
-                                                <span className="ml-2 text-sm">{favoritesCount}</span>
-                                            )}
-                                        </Button>
-                                        <Button variant="outline" size="lg" onClick={handleShare}>
-                                            <Share2 className="w-4 h-4" />
-                                        </Button>
+                                    <Button 
+                                        variant={isFavorite ? 'destructive' : 'outline'} 
+                                        size="lg" 
+                                        onClick={handleToggleFavorite} 
+                                        disabled={isTogglingFavorite}
+                                        type="button"
+                                    >
+                                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                                        {typeof favoritesCount === 'number' && (
+                                            <span className="ml-2 text-sm">{favoritesCount}</span>
+                                        )}
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="lg" 
+                                        onClick={handleShare}
+                                        type="button"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                    </Button>
                                     </div>
 
                                     {/* Price offer and buy now buttons */}
@@ -507,10 +520,19 @@ export default function ListingDetailPage() {
                                                         />
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        <Button onClick={handlePriceOffer} className="flex-1">
+                                                        <Button 
+                                                            onClick={handlePriceOffer} 
+                                                            className="flex-1"
+                                                            type="button"
+                                                        >
                                                             Angebot senden
                                                         </Button>
-                                                        <Button variant="outline" onClick={() => setShowPriceOffer(false)} className="flex-1">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            onClick={() => setShowPriceOffer(false)} 
+                                                            className="flex-1"
+                                                            type="button"
+                                                        >
                                                             Abbrechen
                                                         </Button>
                                                     </div>
@@ -692,7 +714,12 @@ export default function ListingDetailPage() {
                                             {listing.description}
                                         </p>
                                         <div className="mt-3">
-                                            <Button variant="ghost" size="sm" onClick={() => setShowFullDescription((v) => !v)}>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => setShowFullDescription((v) => !v)}
+                                                type="button"
+                                            >
                                                 {showFullDescription ? 'Weniger anzeigen' : 'Weiter lesen'}
                                             </Button>
                                         </div>

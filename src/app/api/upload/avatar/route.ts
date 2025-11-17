@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+import { 
+    validateImageUpload, 
+    generateSafeFilename, 
+    MAX_AVATAR_SIZE 
+} from '@/lib/security/fileValidation';
+import { checkRateLimit, uploadRatelimit, getRateLimitIdentifier } from '@/lib/ratelimit';
+import { logAuditEvent, getIpAddress, getUserAgent } from '@/lib/security/auditLog';
 
 export async function POST(req: Request) {
     try {
@@ -17,35 +21,55 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 });
         }
 
+        // Rate limiting
+        const identifier = getRateLimitIdentifier(req, user.id);
+        const rateLimitResult = await checkRateLimit(uploadRatelimit, identifier, 10, 60000);
+        
+        if (!rateLimitResult.success) {
+            await logAuditEvent({
+                eventType: 'rate_limit_exceeded',
+                userId: user.id,
+                ipAddress: getIpAddress(req),
+                userAgent: getUserAgent(req),
+                eventData: { endpoint: '/api/upload/avatar' },
+                severity: 'warning',
+            });
+            
+            return NextResponse.json(
+                { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+                { status: 429 }
+            );
+        }
+
         // Parse form data
         const formData = await req.formData();
         const file = formData.get('file') as File | null;
-        const previousUrl = formData.get('previousUrl') as string | null;
 
         if (!file) {
             return NextResponse.json({ error: 'Keine Datei hochgeladen' }, { status: 400 });
         }
 
-        // Validate file type
-        if (!ALLOWED_TYPES.includes(file.type)) {
+        // Validate image with signature checking
+        const validation = await validateImageUpload(file, MAX_AVATAR_SIZE);
+        
+        if (!validation.valid) {
+            await logAuditEvent({
+                eventType: 'file_upload_failed',
+                userId: user.id,
+                ipAddress: getIpAddress(req),
+                eventData: { error: validation.error, filename: file.name },
+                severity: 'warning',
+            });
+            
             return NextResponse.json(
-                { error: 'Ungültiger Dateityp. Nur Bilder erlaubt.' },
-                { status: 400 }
-            );
-        }
-
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-            return NextResponse.json(
-                { error: 'Datei zu groß (max. 5MB)' },
+                { error: validation.error },
                 { status: 400 }
             );
         }
 
         // Generate safe filename
-        const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-        const uuid = crypto.randomUUID();
-        const path = `${user.id}/${uuid}.${ext}`;
+        const filename = generateSafeFilename(file.name, file.type);
+        const path = `${user.id}/${filename}`;
 
         // Convert File to ArrayBuffer then to Buffer for Supabase
         const arrayBuffer = await file.arrayBuffer();
@@ -63,7 +87,7 @@ export async function POST(req: Request) {
         if (uploadError) {
             console.error('[avatar upload] storage error:', uploadError);
             return NextResponse.json(
-                { error: `Upload fehlgeschlagen: ${uploadError.message}` },
+                { error: 'Upload fehlgeschlagen' },
                 { status: 500 }
             );
         }
@@ -89,7 +113,7 @@ export async function POST(req: Request) {
         if (updateError) {
             console.error('[avatar upload] profile update error:', updateError);
             return NextResponse.json(
-                { error: `Profil-Update fehlgeschlagen: ${updateError.message}` },
+                { error: 'Profil-Update fehlgeschlagen' },
                 { status: 500 }
             );
         }
@@ -128,7 +152,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('[avatar upload] unexpected error:', error);
         return NextResponse.json(
-            { error: `Unerwarteter Fehler: ${error?.message || 'Unbekannt'}` },
+            { error: 'Unerwarteter Fehler beim Upload' },
             { status: 500 }
         );
     }

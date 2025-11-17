@@ -108,7 +108,7 @@ export async function GET(
 
         // Note: View counting moved to POST /api/listings/[id]/view to avoid double increments
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             data: {
                 ...(listing as any),
                 views: ((listing as any).views ?? 0),
@@ -116,6 +116,13 @@ export async function GET(
                 details
             }
         });
+
+        // Add caching headers (shorter cache for individual listings since they change more)
+        if (!shouldIncrement) {
+            response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+        }
+
+        return response;
 
     } catch (error) {
         console.error('Get listing error:', error);
@@ -287,14 +294,8 @@ export async function PUT(
 
         if (upsertError) {
             console.error('Details upsert error:', upsertError);
-            console.error('Payload that failed:', JSON.stringify(payload, null, 2));
             return NextResponse.json({
-                error: 'Failed to save details',
-                details: upsertError.message,
-                debug: {
-                    category: (listing as any).category,
-                    payload: payload
-                }
+                error: 'Failed to save details'
             }, { status: 500 });
         }
 
@@ -323,8 +324,7 @@ export async function PUT(
                 if (baseUpdateError) {
                     console.error('Base update error:', baseUpdateError);
                     return NextResponse.json({
-                        error: 'Failed to update listing fields',
-                        details: baseUpdateError.message
+                        error: 'Failed to update listing fields'
                     }, { status: 500 });
                 }
             }
@@ -340,8 +340,7 @@ export async function PUT(
             if (imagesUpdateError) {
                 console.error('Images update error:', imagesUpdateError);
                 return NextResponse.json({
-                    error: 'Failed to update images',
-                    details: imagesUpdateError.message
+                    error: 'Failed to update images'
                 }, { status: 500 });
             }
         }
@@ -350,19 +349,15 @@ export async function PUT(
 
     } catch (error) {
         console.error('Update listing error:', error);
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
 
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json({
-                error: 'Validation failed',
-                details: error.message
+                error: 'Validation failed. Please check your input.'
             }, { status: 422 });
         }
 
         return NextResponse.json({
-            error: 'Internal server error',
-            details: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
+            error: 'Internal server error'
         }, { status: 500 });
     }
 }

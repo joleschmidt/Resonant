@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createTransactionSchema } from '@/lib/validations/transactions';
+import { checkRateLimit, sensitiveRatelimit, getRateLimitIdentifier } from '@/lib/ratelimit';
+import { logRateLimitExceeded } from '@/lib/security/auditLog';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,12 +15,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Rate limiting for sensitive transaction operations
+        const identifier = getRateLimitIdentifier(request, user.id);
+        const rateLimitResult = await checkRateLimit(sensitiveRatelimit, identifier, 20, 60000);
+        
+        if (!rateLimitResult.success) {
+            await logRateLimitExceeded(request, user.id, '/api/transactions/create');
+            return NextResponse.json(
+                { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const validation = createTransactionSchema.safeParse(body);
 
         if (!validation.success) {
             return NextResponse.json(
-                { error: 'Validation failed', details: validation.error },
+                { error: 'Validation failed. Please check your input.' },
                 { status: 400 }
             );
         }
@@ -42,6 +56,15 @@ export async function POST(request: NextRequest) {
 
         if (listing.seller_id === user.id) {
             return NextResponse.json({ error: 'Cannot buy your own listing' }, { status: 400 });
+        }
+
+        // SECURITY: Validate transaction amount matches listing price exactly
+        // This prevents price manipulation attacks
+        if (Math.abs(amount - listing.price) > 0.01) {
+            return NextResponse.json(
+                { error: 'Transaction amount must match listing price' },
+                { status: 400 }
+            );
         }
 
         // Create transaction

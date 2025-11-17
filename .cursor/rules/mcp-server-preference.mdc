@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+---
+
+# MCP Server Usage Rules
+
+## Always Prefer MCP Servers
+When working with external services, APIs, or tools that have corresponding MCP servers available, ALWAYS use the MCP server tools instead of direct API calls or manual implementations.
+
+## MCP Server Priority
+1. **Check available MCP servers first** - Use `list_mcp_resources` to discover available resources and capabilities
+2. **Use MCP tools over direct implementations** - If an MCP server provides functionality (e.g., Supabase operations, browser automation, etc.), use those tools instead of writing custom code
+3. **Prefer MCP resources** - When fetching resources or data, check if MCP servers can provide them before implementing custom solutions
+
+## Examples
+- **Supabase operations**: Use `mcp_supabase_*` tools instead of direct Supabase client calls when possible
+- **Browser automation**: Use `mcp_cursor-ide-browser_*` tools for web interactions
+- **Resource fetching**: Use `fetch_mcp_resource` for resources available through MCP servers
+
+## When to Use MCP Servers
+- Database operations (queries, migrations, schema changes)
+- API interactions with services that have MCP servers
+- File/resource fetching from external sources
+- Browser automation and testing
+- Any operation that has a corresponding MCP tool available
+
+## Exception
+Only bypass MCP servers if:
+- The MCP server doesn't provide the required functionality
+- There's a specific technical reason to use direct implementation
+- The user explicitly requests a different approach
+
+## Discovery
+Before implementing any feature that might have an MCP equivalent:
+1. List available MCP resources using `list_mcp_resources`
+2. Check if any MCP server provides the needed functionality
+3. Use the MCP tools if available, otherwise proceed with custom implementation
+

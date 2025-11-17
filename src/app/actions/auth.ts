@@ -44,8 +44,8 @@ export async function signUp(data: SignupFormData) {
   }
 
   // Note: Profile is automatically created by handle_new_user trigger
-  // The username will be set from the auth metadata
-  // TODO: Update profile with custom username after email verification
+  // The username will be set from the auth metadata after email verification
+  // See /auth/callback route for username update logic
 
   return {
     success: true,

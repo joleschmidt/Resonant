@@ -1,110 +1,245 @@
+/**
+ * Home Feed Page
+ * Displays mixed content feed with recent listings, trending, and user suggestions
+ */
+
 'use client';
 
+import { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, Search, Package } from 'lucide-react';
-import Link from 'next/link';
-import { useAuthStore } from '@/stores/authStore';
+import { ListingCard } from '@/components/features/listings/ListingCard';
+import { UserSuggestionCard } from '@/components/features/profile/UserSuggestionCard';
+import { LISTING_CATEGORIES } from '@/utils/constants';
+import { Loader2, TrendingUp, Clock, Users, Search } from 'lucide-react';
+import { useListings } from '@/hooks/listings/useListings';
+import { useTrendingListings } from '@/hooks/listings/useTrendingListings';
+import { useQuery } from '@tanstack/react-query';
 
-export default function Home() {
-    const user = useAuthStore((state) => state.user);
-    const isLoading = useAuthStore((state) => state.isLoading);
-    const isAuthenticated = !!user;
+interface SuggestedUser {
+    id: string;
+    username: string;
+    display_name?: string | null;
+    avatar_url?: string | null;
+    verification_status?: string;
+    followers_count?: number;
+    listings_count?: number;
+}
+
+export default function HomeFeed() {
+    const [category, setCategory] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Use React Query hooks for listings
+    const { data: recentData, isLoading: loadingRecent } = useListings({
+        page: 1,
+        limit: 12,
+        category: category !== 'all' ? category : undefined,
+    });
+
+    const { data: trendingData, isLoading: loadingTrending } = useTrendingListings({
+        category: category !== 'all' ? category : undefined,
+        limit: 8,
+    });
+
+    // Fetch suggested users with React Query
+    const { data: usersData, isLoading: loadingUsers } = useQuery<{ data: SuggestedUser[] }>({
+        queryKey: ['users', 'suggested'],
+        queryFn: async () => {
+            const res = await fetch('/api/users/suggested?limit=5');
+            if (!res.ok) throw new Error('Failed to fetch suggested users');
+            return res.json();
+        },
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
+    });
+
+    const recentListings = recentData?.data || [];
+    const trendingListings = trendingData?.data || [];
+    const suggestedUsers = usersData?.data || [];
+
+    const handleSearch = () => {
+        if (searchQuery.trim()) {
+            window.location.href = `/listings?search=${encodeURIComponent(searchQuery)}`;
+        }
+    };
 
     return (
-        <div className="flex flex-col">
-            {/* Hero Section */}
-            <section style={styles.heroSection} className="container flex flex-col items-center justify-center gap-6 py-24 md:py-32" >
-                <div className="flex max-w-[64rem] flex-col items-center gap-4 text-center">
-                    <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                        Willkommen bei <span className="text-primary">RESONANT</span>
-                    </h1>
-                    <p className="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8">
-                        Die vertrauenswürdige Plattform für Gitarren, Amps und Zubehör in Deutschland.
-                        Sicher kaufen und verkaufen in der größten deutschen Gitarren-Community.
-                    </p>
-                    <div className="flex gap-4">
-                        <Button size="lg" asChild>
-                            <Link href="/listings">
-                                <Search className="mr-2 h-5 w-5" />
-                                Anzeigen durchsuchen
-                            </Link>
-                        </Button>
-                        <Button size="lg" variant="outline" asChild>
-                            <Link href="/about">Mehr erfahren</Link>
-                        </Button>
+        <div className="min-h-screen">
+            {/* Hero Search Section */}
+            <section className="bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b">
+                <div className="container mx-auto px-4 py-12 md:py-16">
+                    <div className="max-w-3xl mx-auto text-center space-y-6">
+                        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                            Dein Musikequipment Marktplatz
+                        </h1>
+                        <p className="text-lg text-muted-foreground">
+                            Gitarren, Amps, Effekte & mehr von verifizierten Verkäufern
+                        </p>
+                        
+                        {/* Search Bar */}
+                        <div className="relative max-w-2xl mx-auto">
+                            <input
+                                type="text"
+                                placeholder="Marke, Modell, Typ..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                className="w-full h-14 px-6 pr-32 text-lg rounded-full border-2 border-border bg-card shadow-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="absolute right-2 top-2 h-10 px-6 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
+                            >
+                                Suchen
+                            </button>
+                        </div>
+
+                        {/* Quick Category Pills */}
+                        <div className="flex flex-wrap gap-2 justify-center pt-2">
+                            <button
+                                onClick={() => setCategory('all')}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                    category === 'all'
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                }`}
+                            >
+                                Alle
+                            </button>
+                            <button
+                                onClick={() => setCategory(LISTING_CATEGORIES.GUITARS)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                    category === LISTING_CATEGORIES.GUITARS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                }`}
+                            >
+                                Gitarren
+                            </button>
+                            <button
+                                onClick={() => setCategory(LISTING_CATEGORIES.AMPS)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                    category === LISTING_CATEGORIES.AMPS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                }`}
+                            >
+                                Amps
+                            </button>
+                            <button
+                                onClick={() => setCategory(LISTING_CATEGORIES.EFFECTS)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                    category === LISTING_CATEGORIES.EFFECTS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                }`}
+                            >
+                                Effekte
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
-            <section className="container py-16 md:py-24">
-                <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
-                    <div className="flex flex-col items-center space-y-4 text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                            <Shield className="h-8 w-8 text-primary" />
+            {/* Content Sections */}
+            <div className="container mx-auto px-4 py-8 md:py-12">
+                <div className="space-y-12 md:space-y-16">
+                {/* Suggested Users Section (only on "Alle" tab) */}
+                {category === 'all' && (
+                    <section>
+                        <div className="flex items-center gap-3 mb-6">
+                            <Users className="h-6 w-6 text-primary" />
+                            <h2 className="text-2xl md:text-3xl font-bold">Empfohlene Nutzer</h2>
                         </div>
-                        <h3 className="text-xl font-bold">Sicher & Vertrauenswürdig</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Verifizierte Nutzer, sichere Zahlungen und Käuferschutz für sorgenfreie Transaktionen.
-                        </p>
-                    </div>
-
-                    <div className="flex flex-col items-center space-y-4 text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                            #                        </div>
-                        <h3 className="text-xl font-bold">Guitar-Spezifisch</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Erweiterte Suchfilter, detaillierte Specs und eine Community die sich auskennt.
-                        </p>
-                    </div>
-
-                    <div className="flex flex-col items-center space-y-4 text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                            <Users className="h-8 w-8 text-primary" />
-                        </div>
-                        <h3 className="text-xl font-bold">Community</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Tausche dich mit Gleichgesinnten aus und finde die perfekte Gitarre für dich.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            {!isLoading && (
-                <section className="container py-16 md:py-24">
-                    <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 rounded-lg border bg-muted/50 p-8 text-center md:p-12">
-                        {isAuthenticated ? (
-                            <>
-                                <h2 className="text-3xl font-bold">Bereit zu verkaufen?</h2>
-                                <p className="text-muted-foreground">
-                                    Erstelle deine erste Anzeige und erreiche tausende Gitarren-Enthusiasten.
-                                </p>
-                                <Button size="lg" asChild>
-                                    <Link href="/listings/create">
-                                        <Package className="mr-2 h-5 w-5" />
-                                        Anzeige erstellen
-                                    </Link>
-                                </Button>
-                            </>
+                        {loadingUsers ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : suggestedUsers.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {suggestedUsers.map((user) => (
+                                    <UserSuggestionCard
+                                        key={user.id}
+                                        user={user}
+                                        onFollowChange={() => {
+                                            // Optionally refresh suggestions after follow
+                                        }}
+                                    />
+                                ))}
+                            </div>
                         ) : (
-                            <>
-                                <h2 className="text-3xl font-bold">Bereit loszulegen?</h2>
-                                <p className="text-muted-foreground">
-                                    Erstelle jetzt dein kostenloses Konto und werde Teil der RESONANT Community.
-                                </p>
-                                <Button size="lg">Jetzt registrieren</Button>
-                            </>
+                            <Card>
+                                <CardContent className="p-6 text-center text-muted-foreground">
+                                    Keine Nutzer-Vorschläge verfügbar
+                                </CardContent>
+                            </Card>
                         )}
+                    </section>
+                )}
+
+                {/* Trending Section */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6">
+                        <TrendingUp className="h-6 w-6 text-primary" />
+                        <h2 className="text-2xl md:text-3xl font-bold">Trending</h2>
                     </div>
+                    {loadingTrending ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : trendingListings.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {trendingListings.map((listing) => (
+                                <ListingCard
+                                    key={listing.id}
+                                    listing={listing}
+                                    viewMode="grid"
+                                    showSeller={true}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                                Keine Trending-Anzeigen verfügbar
+                            </CardContent>
+                        </Card>
+                    )}
                 </section>
-            )}
+
+                {/* Recent Listings Section */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6">
+                        <Clock className="h-6 w-6 text-primary" />
+                        <h2 className="text-2xl md:text-3xl font-bold">Neueste Anzeigen</h2>
+                    </div>
+                    {loadingRecent ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : recentListings.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {recentListings.map((listing) => (
+                                <ListingCard
+                                    key={listing.id}
+                                    listing={listing}
+                                    viewMode="grid"
+                                    showSeller={true}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                                Keine Anzeigen verfügbar
+                            </CardContent>
+                        </Card>
+                    )}
+                </section>
+                </div>
+            </div>
         </div>
     );
 }
-
-const styles = {
-    heroSection: {
-        minHeight: '90vh',
-    },
-};

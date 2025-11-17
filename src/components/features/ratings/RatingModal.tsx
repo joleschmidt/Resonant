@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Star } from 'lucide-react';
@@ -70,6 +70,9 @@ export function RatingModal({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Bewerte {ratedUsername}</DialogTitle>
+                    <DialogDescription>
+                        Teile deine Erfahrung mit diesem Nutzer. Deine Bewertung hilft anderen bei der Entscheidung.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div>
@@ -122,10 +125,16 @@ export function RatingModal({
                             onClick={handleSubmit}
                             disabled={score === 0 || submitting}
                             className="flex-1"
+                            type="button"
                         >
                             {submitting ? 'Wird gesendet...' : 'Bewertung abgeben'}
                         </Button>
-                        <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => onOpenChange(false)} 
+                            className="flex-1"
+                            type="button"
+                        >
                             Abbrechen
                         </Button>
                     </div>

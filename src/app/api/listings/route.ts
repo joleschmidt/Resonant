@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { listingFiltersSchema } from '@/lib/validations/listings';
 
+export const revalidate = 60; // Revalidate every 60 seconds
+
 export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();
@@ -69,6 +71,41 @@ export async function GET(request: NextRequest) {
             }, { status: 500 });
         }
 
+        // Batch fetch category-specific details (optimize N+1 queries)
+        const listingIds = (listings || []).map((l: any) => l.id);
+        const guitarsIds = (listings || []).filter((l: any) => l.category === 'guitars').map((l: any) => l.id);
+        const ampsIds = (listings || []).filter((l: any) => l.category === 'amps').map((l: any) => l.id);
+        const effectsIds = (listings || []).filter((l: any) => l.category === 'effects').map((l: any) => l.id);
+
+        const [guitarsDetails, ampsDetails, effectsDetails] = await Promise.all([
+            guitarsIds.length > 0
+                ? supabase.from('guitars_detail').select('*').in('listing_id', guitarsIds)
+                : Promise.resolve({ data: [] }),
+            ampsIds.length > 0
+                ? supabase.from('amps_detail').select('*').in('listing_id', ampsIds)
+                : Promise.resolve({ data: [] }),
+            effectsIds.length > 0
+                ? supabase.from('effects_detail').select('*').in('listing_id', effectsIds)
+                : Promise.resolve({ data: [] }),
+        ]);
+
+        // Create lookup maps
+        const guitarsMap = new Map((guitarsDetails.data || []).map((g: any) => [g.listing_id, g]));
+        const ampsMap = new Map((ampsDetails.data || []).map((a: any) => [a.listing_id, a]));
+        const effectsMap = new Map((effectsDetails.data || []).map((e: any) => [e.listing_id, e]));
+
+        // Transform listings with details
+        const transformedListings = (listings || []).map((listing: any) => {
+            if (listing.category === 'guitars') {
+                return { ...listing, guitar_details: guitarsMap.get(listing.id) || null };
+            } else if (listing.category === 'amps') {
+                return { ...listing, amp_details: ampsMap.get(listing.id) || null };
+            } else if (listing.category === 'effects') {
+                return { ...listing, effect_details: effectsMap.get(listing.id) || null };
+            }
+            return listing;
+        });
+
         // Get total count with same filters
         let countQuery = supabase
             .from('listings')
@@ -106,8 +143,8 @@ export async function GET(request: NextRequest) {
         const hasNext = page < totalPages;
         const hasPrevious = page > 1;
 
-        return NextResponse.json({
-            data: listings || [],
+        const response = NextResponse.json({
+            data: transformedListings,
             pagination: {
                 page,
                 limit,
@@ -117,6 +154,11 @@ export async function GET(request: NextRequest) {
                 has_previous: hasPrevious
             }
         });
+
+        // Add caching headers
+        response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+
+        return response;
 
     } catch (error) {
         console.error('Listings API error:', error);

@@ -88,6 +88,17 @@ RESONANT ist eine moderne Marketplace-Plattform, speziell entwickelt für die de
    
    Öffne [http://localhost:3000](http://localhost:3000)
 
+6. **Dummy Data erstellen (Optional)**
+   
+   Um die Website mit Beispiel-Daten zu füllen:
+   \`\`\`bash
+   npm run seed
+   \`\`\`
+   
+   Oder manuell: `POST http://localhost:3000/api/seed?confirm=true`
+   
+   Siehe [Seeding Guide](docs/SEEDING.md) für Details.
+
 ## 📁 Projektstruktur
 
 \`\`\`

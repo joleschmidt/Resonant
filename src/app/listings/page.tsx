@@ -21,9 +21,10 @@ import {
     Loader2
 } from 'lucide-react';
 import { ListingCard } from '@/components/features/listings/ListingCard';
-import { useListingsStore, applyClientFilters } from '@/stores/listingsStore';
+import { applyClientFilters } from '@/stores/listingsStore';
 import { LISTING_CATEGORIES, CONDITIONS, GUITAR_TYPES, AMP_TYPES, EFFECT_TYPES } from '@/utils/constants';
 import type { ListingWithDetails } from '@/types/listings';
+import { useListings } from '@/hooks/listings/useListings';
 
 interface ListingsResponse {
     data: ListingWithDetails[];
@@ -39,10 +40,6 @@ interface ListingsResponse {
 
 export default function ListingsPage() {
     const searchParams = useSearchParams();
-    const { allListings, isLoading, error, fetchOnce } = useListingsStore();
-    const [listings, setListings] = useState<ListingWithDetails[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [pagination, setPagination] = useState<ListingsResponse['pagination'] | null>(null);
 
     // Filters state
     const [filters, setFilters] = useState<{
@@ -65,13 +62,20 @@ export default function ListingsPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [showMobileControls, setShowMobileControls] = useState(false);
+    const [appliedFilters, setAppliedFilters] = useState(filters);
 
-    // Fetch listings
-    const fetchListings = useCallback(async () => {
-        setLoading(true);
-        await fetchOnce();
-        setLoading(false);
-    }, [fetchOnce]);
+    // Use React Query to fetch listings
+    const { data: listingsData, isLoading, error } = useListings({
+        page: 1,
+        limit: 500, // Large limit for client-side filtering
+        ...appliedFilters,
+    });
+
+    const allListings = listingsData?.data || [];
+    const pagination = listingsData?.pagination || null;
+
+    // Apply client-side filters
+    const filteredListings = applyClientFilters(allListings, appliedFilters);
 
     // Handle search (no auto-fetch; fetch on Enter or apply)
     const handleSearch = (query: string) => {
@@ -86,80 +90,97 @@ export default function ListingsPage() {
 
     // Apply filters
     const applyFilters = () => {
-        const filtered = applyClientFilters(allListings, filters);
-        setListings(filtered);
-        // simple client-side pagination placeholder
-        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
+        setAppliedFilters(filters);
     };
 
     // Clear filters
     const clearFilters = () => {
-        setFilters({});
+        const emptyFilters = {};
+        setFilters(emptyFilters);
         setSearchQuery('');
-        setListings(allListings);
-        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: allListings.length, has_next: false, has_previous: false });
+        setAppliedFilters(emptyFilters);
     };
 
-    // Load listings on mount and when filters change
-    useEffect(() => {
-        fetchListings();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Recompute when store data available or filters change after explicit apply
-    useEffect(() => {
-        if (allListings.length && listings.length === 0) {
-            // initial view before any apply → show unfiltered
-            setListings(allListings);
-            setPagination({ page: 1, limit: 20, total_pages: 1, total_count: allListings.length, has_next: false, has_previous: false });
-        }
-    }, [allListings]);
-
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Category Selection */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <Tabs value={filters.category || 'all'} onValueChange={(value) => {
-                        const next = value === 'all' ? undefined : value;
-                        handleFilterChange('category', next);
-                        // Apply client-side filter instantly
-                        const nextFilters = { ...filters, category: next } as any;
-                        const filtered = applyClientFilters(allListings, nextFilters);
-                        setListings(filtered);
-                        setPagination({ page: 1, limit: 20, total_pages: 1, total_count: filtered.length, has_next: false, has_previous: false });
-                    }}>
-                        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-                            <TabsTrigger value="all">Alle</TabsTrigger>
-                            <TabsTrigger value={LISTING_CATEGORIES.GUITARS}>Gitarren</TabsTrigger>
-                            <TabsTrigger value={LISTING_CATEGORIES.AMPS}>Amps</TabsTrigger>
-                            <TabsTrigger value={LISTING_CATEGORIES.EFFECTS}>Effekte</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowMobileControls((v) => !v)}
-                        aria-expanded={showMobileControls}
-                        aria-controls="mobile-controls"
-                        className="lg:hidden ml-2"
-                        aria-label="Suche und Filter umschalten"
-                    >
-                        <SlidersHorizontal className="h-5 w-5" />
-                    </Button>
-                </div>
-            </div>
+        <div className="min-h-screen bg-background">
+            {/* Search Header */}
+            <div className="border-b bg-card/50 backdrop-blur-sm sticky top-16 z-40">
+                <div className="container mx-auto px-4 py-4">
+                    {/* Category Selection */}
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                        <div className="flex-1 max-w-2xl">
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('category', undefined);
+                                        setAppliedFilters({ ...filters, category: undefined } as any);
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!filters.category
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                        }`}
+                                >
+                                    Alle
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('category', LISTING_CATEGORIES.GUITARS);
+                                        setAppliedFilters({ ...filters, category: LISTING_CATEGORIES.GUITARS } as any);
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filters.category === LISTING_CATEGORIES.GUITARS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                        }`}
+                                >
+                                    Gitarren
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('category', LISTING_CATEGORIES.AMPS);
+                                        setAppliedFilters({ ...filters, category: LISTING_CATEGORIES.AMPS } as any);
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filters.category === LISTING_CATEGORIES.AMPS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                        }`}
+                                >
+                                    Amps
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleFilterChange('category', LISTING_CATEGORIES.EFFECTS);
+                                        setAppliedFilters({ ...filters, category: LISTING_CATEGORIES.EFFECTS } as any);
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filters.category === LISTING_CATEGORIES.EFFECTS
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-secondary hover:bg-secondary/80'
+                                        }`}
+                                >
+                                    Effekte
+                                </button>
+                            </div>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowMobileControls((v) => !v)}
+                            aria-expanded={showMobileControls}
+                            aria-controls="mobile-controls"
+                            className="lg:hidden"
+                            aria-label="Suche und Filter umschalten"
+                        >
+                            <SlidersHorizontal className="h-5 w-5" />
+                        </Button>
+                    </div>
 
-            {/* Mobile Toggle for Search & Filters moved into category header */}
+                    {/* Mobile Toggle for Search & Filters moved into category header */}
 
-            {/* Compact Search and Controls */}
-            <div className="mb-4" id="mobile-controls">
-                <div className={`${showMobileControls ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-3 lg:items-center`}>
-                    {/* Search */}
-                    <div className="flex-1">
-                        <div className="relative flex items-center gap-2">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    {/* Search and Controls */}
+                    <div className={`${showMobileControls ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-3 lg:items-center`}>
+                        {/* Search */}
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Suche nach Marke, Modell, Typ..."
                                     value={searchQuery}
@@ -167,259 +188,181 @@ export default function ListingsPage() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') applyFilters();
                                     }}
-                                    className="pl-10 h-9 text-sm"
+                                    className="pl-11 h-11 rounded-full border-2 focus-visible:border-primary"
                                 />
                             </div>
-                            <Button size="sm" onClick={applyFilters} aria-label="Suche ausführen">
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="gap-2"
+                            >
+                                <SlidersHorizontal className="h-4 w-4" />
+                                Filter
+                            </Button>
+
+                            {/* View Mode Toggle */}
+                            <div className="hidden lg:flex gap-1 border rounded-lg p-1">
+                                <Button
+                                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setViewMode('grid')}
+                                >
+                                    <Grid3X3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setViewMode('list')}
+                                >
+                                    <List className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <Button size="sm" onClick={applyFilters} className="hidden lg:flex">
                                 Suchen
                             </Button>
                         </div>
                     </div>
-
-                    {/* Filter Toggle (mobile inline button removed; use global mobile toggle) */}
-                    <div className="hidden" />
-
-                    {/* View Mode Toggle */}
-                    <div className="flex gap-2">
-                        <Button
-                            variant={viewMode === 'grid' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('grid')}
-                        >
-                            <Grid3X3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant={viewMode === 'list' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setViewMode('list')}
-                        >
-                            <List className="h-4 w-4" />
-                        </Button>
-                    </div>
                 </div>
             </div>
 
-            {/* Filters Panel (mobile only, stays at top) */}
-            {showMobileControls && (
-                <Card className="mb-6 lg:hidden">
-                    <CardContent className="p-4 sm:p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {/* Price Range */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Preis</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="number"
-                                        placeholder="Min"
-                                        value={filters.price_min || ''}
-                                        onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                    />
-                                    <Input
-                                        type="number"
-                                        placeholder="Max"
-                                        value={filters.price_max || ''}
-                                        onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Condition */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Zustand</label>
-                                <div className="flex flex-wrap gap-1">
-                                    {Object.values(CONDITIONS).map((condition) => (
-                                        <Badge
-                                            key={condition}
-                                            variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
-                                            className="cursor-pointer"
-                                            onClick={() => {
-                                                const currentConditions = filters.condition || [];
-                                                const newConditions = currentConditions.includes(condition)
-                                                    ? currentConditions.filter((c: string) => c !== condition)
-                                                    : [...currentConditions, condition];
-                                                handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
-                                            }}
-                                        >
-                                            {getConditionLabel(condition)}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Location */}
-                            <div>
-                                <label className="text-sm font-medium mb-2 block">Ort</label>
-                                <Input
-                                    placeholder="Stadt"
-                                    value={filters.location_city || ''}
-                                    onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Filter Actions */}
-                        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                            <Button onClick={applyFilters}>Filter anwenden</Button>
-                            <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Results */}
-            {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Lade Anzeigen...</span>
-                </div>
-            ) : error ? (
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <p className="text-destructive">{error}</p>
-                        <Button onClick={() => fetchListings()} className="mt-4">
-                            Erneut versuchen
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : listings.length === 0 ? (
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <p className="text-muted-foreground">Keine Anzeigen gefunden</p>
-                        <Button variant="outline" onClick={clearFilters} className="mt-4">
-                            Filter zurücksetzen
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    {/* Results Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <p className="text-sm text-muted-foreground">
-                            {pagination?.total_count} Anzeigen gefunden
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="hidden lg:flex text-muted-foreground hover:text-foreground"
-                            >
-                                <SlidersHorizontal className="h-4 w-4 mr-1" />
-                                Filter
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Filters Panel (desktop only, directly under header button) */}
-                    {showFilters && (
-                        <Card className="mb-6 hidden lg:block">
-                            <CardContent className="p-4 sm:p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* Price Range */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block">Preis</label>
-                                        <div className="flex gap-2">
-                                            <Input
-                                                type="number"
-                                                placeholder="Min"
-                                                value={filters.price_min || ''}
-                                                onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                            />
-                                            <Input
-                                                type="number"
-                                                placeholder="Max"
-                                                value={filters.price_max || ''}
-                                                onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Condition */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block">Zustand</label>
-                                        <div className="flex flex-wrap gap-1">
-                                            {Object.values(CONDITIONS).map((condition) => (
-                                                <Badge
-                                                    key={condition}
-                                                    variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
-                                                    className="cursor-pointer"
-                                                    onClick={() => {
-                                                        const currentConditions = filters.condition || [];
-                                                        const newConditions = currentConditions.includes(condition)
-                                                            ? currentConditions.filter((c: string) => c !== condition)
-                                                            : [...currentConditions, condition];
-                                                        handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
-                                                    }}
-                                                >
-                                                    {getConditionLabel(condition)}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Location */}
-                                    <div>
-                                        <label className="text-sm font-medium mb-2 block">Ort</label>
+            {/* Main Content Area */}
+            <div className="container mx-auto px-4 py-6">
+                {/* Filters Panel */}
+                {showFilters && (
+                    <Card className="mb-6 border-border/50">
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {/* Price Range */}
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Preis</label>
+                                    <div className="flex gap-2">
                                         <Input
-                                            placeholder="Stadt"
-                                            value={filters.location_city || ''}
-                                            onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                            type="number"
+                                            placeholder="Min"
+                                            value={filters.price_min || ''}
+                                            onChange={(e) => handleFilterChange('price_min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                        />
+                                        <Input
+                                            type="number"
+                                            placeholder="Max"
+                                            value={filters.price_max || ''}
+                                            onChange={(e) => handleFilterChange('price_max', e.target.value ? parseFloat(e.target.value) : undefined)}
                                         />
                                     </div>
                                 </div>
 
-                                {/* Filter Actions */}
-                                <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                                    <Button onClick={applyFilters}>Filter anwenden</Button>
-                                    <Button variant="outline" onClick={clearFilters}>Filter zurücksetzen</Button>
+                                {/* Condition */}
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Zustand</label>
+                                    <div className="flex flex-wrap gap-1">
+                                        {Object.values(CONDITIONS).map((condition) => (
+                                            <Badge
+                                                key={condition}
+                                                variant={filters.condition?.includes(condition) ? 'default' : 'outline'}
+                                                className="cursor-pointer"
+                                                onClick={() => {
+                                                    const currentConditions = filters.condition || [];
+                                                    const newConditions = currentConditions.includes(condition)
+                                                        ? currentConditions.filter((c: string) => c !== condition)
+                                                        : [...currentConditions, condition];
+                                                    handleFilterChange('condition', newConditions.length > 0 ? newConditions : undefined);
+                                                }}
+                                            >
+                                                {getConditionLabel(condition)}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
 
-                    {/* Listings Grid */}
-                    <div className={`
-            ${viewMode === 'grid'
-                            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                            : 'space-y-4'
-                        }
-          `}>
-                        {listings.map((listing) => (
-                            <ListingCard
-                                key={listing.id}
-                                listing={listing}
-                                viewMode={viewMode}
-                                showSeller={true}
-                            />
-                        ))}
+                                {/* Location */}
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Ort</label>
+                                    <Input
+                                        placeholder="Stadt"
+                                        value={filters.location_city || ''}
+                                        onChange={(e) => handleFilterChange('location_city', e.target.value || undefined)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Filter Actions */}
+                            <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
+                                <Button onClick={applyFilters} size="sm">Filter anwenden</Button>
+                                <Button variant="outline" size="sm" onClick={clearFilters}>Zurücksetzen</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Results */}
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <span className="ml-3 text-muted-foreground">Lade Anzeigen...</span>
                     </div>
-
-                    {/* Pagination */}
-                    {pagination && pagination.total_pages > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-8">
-                            <Button
-                                variant="outline"
-                                onClick={() => { /* TODO: client pagination */ }}
-                                disabled
-                            >
-                                Zurück
+                ) : error ? (
+                    <Card className="border-destructive/50">
+                        <CardContent className="p-12 text-center">
+                            <p className="text-destructive mb-4">{error instanceof Error ? error.message : 'Fehler beim Laden der Anzeigen'}</p>
+                            <Button onClick={() => window.location.reload()} size="sm">
+                                Erneut versuchen
                             </Button>
-
-                            <span className="text-sm text-muted-foreground">
-                                Seite {pagination.page} von {pagination.total_pages}
-                            </span>
-
-                            <Button
-                                variant="outline"
-                                onClick={() => { /* TODO: client pagination */ }}
-                                disabled
-                            >
-                                Weiter
+                        </CardContent>
+                    </Card>
+                ) : filteredListings.length === 0 ? (
+                    <Card>
+                        <CardContent className="p-12 text-center">
+                            <p className="text-lg text-muted-foreground mb-4">Keine Anzeigen gefunden</p>
+                            <p className="text-sm text-muted-foreground mb-6">Versuche es mit anderen Suchkriterien</p>
+                            <Button variant="outline" onClick={clearFilters} size="sm">
+                                Filter zurücksetzen
                             </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        {/* Results Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                {filteredListings.length} {filteredListings.length === 1 ? 'Anzeige' : 'Anzeigen'} gefunden
+                            </p>
                         </div>
-                    )}
-                </>
-            )}
+
+                        {/* Listings Grid */}
+                        <div className={`
+                            ${viewMode === 'grid'
+                                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5'
+                                : 'space-y-4'
+                            }
+                        `}>
+                            {filteredListings.map((listing) => (
+                                <ListingCard
+                                    key={listing.id}
+                                    listing={listing}
+                                    viewMode={viewMode}
+                                    showSeller={true}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {filteredListings.length > 20 && (
+                            <div className="flex items-center justify-center gap-2 mt-10">
+                                <span className="text-sm text-muted-foreground">
+                                    {filteredListings.length} Anzeigen angezeigt
+                                </span>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
     );
 }

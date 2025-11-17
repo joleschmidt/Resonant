@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Settings, LogOut, Heart, Package } from 'lucide-react';
+import { User, Settings, LogOut, Heart, Package, Receipt } from 'lucide-react';
 
 export function UserMenu() {
   const user = useAuthStore((s) => s.user);
@@ -75,6 +75,13 @@ export function UserMenu() {
           <Link href="/listings/my-listings" className="cursor-pointer">
             <Package className="mr-2 h-4 w-4" />
             <span>Meine Anzeigen</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/transactions" className="cursor-pointer">
+            <Receipt className="mr-2 h-4 w-4" />
+            <span>Transaktionen</span>
           </Link>
         </DropdownMenuItem>
 

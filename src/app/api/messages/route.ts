@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { sendMessageSchema } from '@/lib/validations/messaging';
+import { sanitizeText } from '@/lib/security/sanitize';
+import { checkRateLimit, authenticatedRatelimit, getRateLimitIdentifier } from '@/lib/ratelimit';
+import { logRateLimitExceeded } from '@/lib/security/auditLog';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,17 +16,32 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Rate limiting
+        const identifier = getRateLimitIdentifier(request, user.id);
+        const rateLimitResult = await checkRateLimit(authenticatedRatelimit, identifier, 200, 60000);
+        
+        if (!rateLimitResult.success) {
+            await logRateLimitExceeded(request, user.id, '/api/messages');
+            return NextResponse.json(
+                { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const validation = sendMessageSchema.safeParse(body);
 
         if (!validation.success) {
             return NextResponse.json(
-                { error: 'Validation failed', details: validation.error },
+                { error: 'Validation failed. Please check your input.' },
                 { status: 400 }
             );
         }
 
-        const { conversationId, recipientId, listingId, content } = validation.data;
+        const { conversationId, recipientId, listingId, content: rawContent } = validation.data;
+        
+        // Sanitize message content
+        const content = sanitizeText(rawContent);
 
         let finalConversationId = conversationId;
 

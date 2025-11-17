@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 
 type Props = {
@@ -96,6 +96,9 @@ export function AvatarCropper({ open, onOpenChange, imageSrc, onCrop }: Props) {
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Avatar zuschneiden</DialogTitle>
+                    <DialogDescription>
+                        Passe die Position und den Zoom deines Avatars an. Verwende den Slider zum Zoomen.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
@@ -132,10 +135,19 @@ export function AvatarCropper({ open, onOpenChange, imageSrc, onCrop }: Props) {
                     </div>
 
                     <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={handleCancel} disabled={isProcessing}>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleCancel} 
+                            disabled={isProcessing}
+                            type="button"
+                        >
                             Abbrechen
                         </Button>
-                        <Button onClick={handleCrop} disabled={isProcessing || !croppedAreaPixels}>
+                        <Button 
+                            onClick={handleCrop} 
+                            disabled={isProcessing || !croppedAreaPixels}
+                            type="button"
+                        >
                             {isProcessing ? 'Verarbeitung...' : 'Zuschneiden & Hochladen'}
                         </Button>
                     </div>

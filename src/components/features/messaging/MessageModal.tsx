@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useUser } from '@/hooks/auth/useUser';
@@ -85,6 +85,12 @@ export function MessageModal({
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Nachricht an {recipientUsername}</DialogTitle>
+                    <DialogDescription>
+                        {listingTitle 
+                            ? `Sende eine Nachricht bezüglich "${listingTitle}"`
+                            : 'Sende eine Nachricht an diesen Nutzer'
+                        }
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                     {listingTitle && (
@@ -98,12 +104,23 @@ export function MessageModal({
                             id="message-content"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    if (content.trim() && !sending) {
+                                        handleSend();
+                                    }
+                                }
+                            }}
                             placeholder="Schreibe deine Nachricht..."
-                            className="w-full mt-1 p-3 border rounded-lg min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full mt-1 p-3 border rounded-lg min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                             maxLength={2000}
+                            autoFocus
                         />
                         <div className="text-xs text-muted-foreground mt-1">
-                            {content.length}/2000 Zeichen
+                            {content.length}/2000 Zeichen {content.trim().length > 0 && content.trim().length < 3 && (
+                                <span className="text-amber-600">(Mindestens 3 Zeichen empfohlen)</span>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -111,11 +128,20 @@ export function MessageModal({
                             onClick={handleSend}
                             disabled={!content.trim() || sending}
                             className="flex-1"
+                            type="button"
                         >
                             <Send className="w-4 h-4 mr-2" />
                             {sending ? 'Wird gesendet...' : 'Senden'}
                         </Button>
-                        <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setContent('');
+                                setOpen(false);
+                            }} 
+                            className="flex-1"
+                            type="button"
+                        >
                             Abbrechen
                         </Button>
                     </div>

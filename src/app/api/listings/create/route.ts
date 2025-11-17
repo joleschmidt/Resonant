@@ -22,20 +22,18 @@ export async function POST(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        // Temporarily allow all authenticated users to create listings
-        // TODO: Re-enable verification requirement later
-        // if (!profile || !['verified', 'premium', 'store', 'admin'].includes(profile.account_type)) {
-        //     return NextResponse.json({
-        //         error: 'Account verification required to create listings'
-        //     }, { status: 403 });
-        // }
+        // SECURITY: Require account verification to create listings
+        // This prevents spam and builds trust in the marketplace
+        if (!profile || !['verified', 'premium', 'store', 'admin'].includes(profile.account_type)) {
+            return NextResponse.json({
+                error: 'Account verification required to create listings'
+            }, { status: 403 });
+        }
 
         // Parse and validate request body
         const body = await request.json();
-        console.log('Received listing data:', body);
 
         const validatedData = createListingSchema.parse(body);
-        console.log('Validated data:', validatedData);
 
         // Generate slug from title
         const slug = validatedData.title
@@ -78,8 +76,7 @@ export async function POST(request: NextRequest) {
         if (listingError) {
             console.error('Listing creation error:', listingError);
             return NextResponse.json({
-                error: 'Failed to create listing',
-                details: listingError.message
+                error: 'Failed to create listing'
             }, { status: 500 });
         }
 
@@ -154,8 +151,7 @@ export async function POST(request: NextRequest) {
                 .eq('id', listing.id);
 
             return NextResponse.json({
-                error: 'Failed to create listing details',
-                details: detailError.message
+                error: 'Failed to create listing details'
             }, { status: 500 });
         }
 
@@ -169,8 +165,7 @@ export async function POST(request: NextRequest) {
 
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json({
-                error: 'Validation failed',
-                details: error.message
+                error: 'Validation failed. Please check your input.'
             }, { status: 422 });
         }
 

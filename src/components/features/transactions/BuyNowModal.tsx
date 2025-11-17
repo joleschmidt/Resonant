@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Package, Truck } from 'lucide-react';
 import { useUser } from '@/hooks/auth/useUser';
@@ -68,6 +68,9 @@ export function BuyNowModal({ open, onOpenChange, listing }: BuyNowModalProps) {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Sofort kaufen</DialogTitle>
+                    <DialogDescription>
+                        Bestätige den Kauf dieser Anzeige. Nach dem Kauf erhältst du weitere Informationen zur Zahlung und zum Versand.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div className="text-center">
@@ -116,10 +119,16 @@ export function BuyNowModal({ open, onOpenChange, listing }: BuyNowModalProps) {
                             onClick={handleBuy}
                             disabled={processing}
                             className="flex-1 bg-green-600 hover:bg-green-700"
+                            type="button"
                         >
                             {processing ? 'Wird verarbeitet...' : 'Jetzt kaufen'}
                         </Button>
-                        <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => onOpenChange(false)} 
+                            className="flex-1"
+                            type="button"
+                        >
                             Abbrechen
                         </Button>
                     </div>

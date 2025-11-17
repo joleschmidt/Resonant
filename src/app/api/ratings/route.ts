@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
         if (!validation.success) {
             return NextResponse.json(
-                { error: 'Validation failed', details: validation.error },
+                { error: 'Validation failed. Please check your input.' },
                 { status: 400 }
             );
         }
@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
         const supabase = await createClient();
         const { searchParams } = new URL(request.url);
         const userId = searchParams.get('userId');
+        const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
 
         if (!userId) {
             return NextResponse.json({ error: 'userId parameter required' }, { status: 400 });
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
             )
             .eq('rated_user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(limit);
 
         if (error) {
             console.error('Failed to fetch ratings:', error);

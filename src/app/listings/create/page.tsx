@@ -139,12 +139,129 @@ export default function CreateListingPage() {
     };
 
     const handleSaveDraft = async () => {
+        // Basic validation - at least category and title
+        if (!selectedCategory) {
+            setErrors({ category: 'Bitte wähle eine Kategorie' });
+            setCurrentStep(1);
+            return;
+        }
+
+        if (!formData.title || formData.title.length < 10) {
+            setErrors({ title: 'Bitte gib einen Titel ein (mindestens 10 Zeichen)' });
+            setCurrentStep(3);
+            return;
+        }
+
         setLoading(true);
         try {
-            // TODO: Implement draft saving
-            console.log('Saving draft...', { ...formData, images });
-        } catch (error) {
+            // Upload images if provided (optional for drafts)
+            const uploadedImageUrls: string[] = [];
+
+            if (images.length > 0) {
+                const uploadPromises = images.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch('/api/upload/listing-images', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Upload fehlgeschlagen');
+                    }
+
+                    const data = await response.json();
+                    return data.url;
+                });
+
+                uploadedImageUrls.push(...(await Promise.all(uploadPromises)));
+            }
+
+            // Prepare data for API
+            const listingData: any = {
+                category: selectedCategory,
+                title: formData.title,
+                description: formData.description || 'Beschreibung folgt...', // Placeholder if empty
+                price: formData.price || 100, // Default price if empty
+                original_price: formData.original_price,
+                price_negotiable: formData.price_negotiable || false,
+                condition: formData.condition || 'good',
+                condition_notes: formData.condition_notes,
+                location_city: formData.location_city || 'Berlin',
+                location_state: formData.location_state,
+                location_postal_code: formData.location_postal_code,
+                shipping_available: formData.shipping_available ?? true,
+                shipping_cost: formData.shipping_cost,
+                shipping_methods: formData.shipping_methods || ['standard'],
+                pickup_available: formData.pickup_available ?? true,
+                images: uploadedImageUrls,
+                videos: formData.videos || [],
+                case_included: formData.case_included || false,
+                accessories: formData.accessories || [],
+                tags: formData.tags || [],
+            };
+
+            // Add category-specific details
+            if (selectedCategory === LISTING_CATEGORIES.GUITARS && formData.guitar_details) {
+                Object.assign(listingData, {
+                    brand: formData.guitar_details.brand,
+                    model: formData.guitar_details.model,
+                    series: formData.guitar_details.series,
+                    year: formData.guitar_details.year,
+                    country_of_origin: formData.guitar_details.country_of_origin,
+                    guitar_type: formData.guitar_details.guitar_type,
+                    specifications: formData.guitar_details.specifications || {}
+                });
+            } else if (selectedCategory === LISTING_CATEGORIES.AMPS && formData.amp_details) {
+                Object.assign(listingData, {
+                    brand: formData.amp_details.brand,
+                    model: formData.amp_details.model,
+                    series: formData.amp_details.series,
+                    year: formData.amp_details.year,
+                    country_of_origin: formData.amp_details.country_of_origin,
+                    amp_type: formData.amp_details.amp_type,
+                    wattage: formData.amp_details.wattage,
+                    speaker_config: formData.amp_details.speaker_config,
+                    channels: formData.amp_details.channels,
+                    effects_loop: formData.amp_details.effects_loop,
+                    reverb: formData.amp_details.reverb,
+                    headphone_out: formData.amp_details.headphone_out,
+                    specifications: formData.amp_details.specifications || {}
+                });
+            } else if (selectedCategory === LISTING_CATEGORIES.EFFECTS && formData.effect_details) {
+                Object.assign(listingData, {
+                    brand: formData.effect_details.brand,
+                    model: formData.effect_details.model,
+                    series: formData.effect_details.series,
+                    year: formData.effect_details.year,
+                    country_of_origin: formData.effect_details.country_of_origin,
+                    effect_type: formData.effect_details.effect_type,
+                    specifications: formData.effect_details.specifications || {}
+                });
+            }
+
+            // Save draft
+            const response = await fetch('/api/listings/draft', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(listingData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Fehler beim Speichern des Entwurfs');
+            }
+
+            const data = await response.json();
+            alert('Entwurf erfolgreich gespeichert!');
+            router.push('/listings/my-listings?status=draft');
+        } catch (error: any) {
             console.error('Error saving draft:', error);
+            setErrors({ draft: error.message || 'Fehler beim Speichern des Entwurfs' });
         } finally {
             setLoading(false);
         }

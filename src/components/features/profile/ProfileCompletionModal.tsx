@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -107,6 +107,9 @@ export function ProfileCompletionModal({ open, onOpenChange }: Props) {
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Wähle deinen Benutzernamen</DialogTitle>
+                    <DialogDescription>
+                        Dein Benutzername wird in deinem Profil angezeigt und kann später nicht mehr geändert werden.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
                     <div className="space-y-2">

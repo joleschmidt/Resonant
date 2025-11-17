@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,12 +18,15 @@ import {
     User,
     Calendar,
     Euro,
-    Star
+    Star,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 // Removed ImageKit import - using direct Supabase Storage URLs
 import type { ListingWithDetails } from '@/types/listings';
 import { CONDITIONS, LISTING_CATEGORIES } from '@/utils/constants';
 import Link from 'next/link';
+import { useUser } from '@/hooks/auth/useUser';
 
 interface ListingCardProps {
     listing: ListingWithDetails;
@@ -37,7 +41,13 @@ export function ListingCard({
     showSeller = true,
     className = ''
 }: ListingCardProps) {
-    const mainImage = listing.images?.[0];
+    const { user } = useUser();
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+    const images = listing.images || [];
+    const hasMultipleImages = images.length > 1;
+    const mainImage = images[currentImageIndex] || images[0];
     const conditionLabel = getConditionLabel(listing.condition);
     const categoryLabel = getCategoryLabel(listing.category);
     const priceFormatted = new Intl.NumberFormat('de-DE', {
@@ -47,95 +57,218 @@ export function ListingCard({
 
     const isGrid = viewMode === 'grid';
 
+    // Check favorite status on mount
+    useEffect(() => {
+        if (!user) {
+            setIsFavorite(false);
+            return;
+        }
+
+        const checkFavorite = async () => {
+            try {
+                const res = await fetch(`/api/listings/${listing.id}/favorite`);
+                if (res.ok) {
+                    const json = await res.json();
+                    setIsFavorite(json.is_favorite || false);
+                }
+            } catch (error) {
+                // Silently fail - favorite status is optional
+            }
+        };
+
+        checkFavorite();
+    }, [listing.id, user]);
+
+    const handleToggleFavorite = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!user) {
+            // Could redirect to login or show a message
+            return;
+        }
+
+        if (isTogglingFavorite) return;
+
+        setIsTogglingFavorite(true);
+        const prev = isFavorite;
+        setIsFavorite(!prev);
+
+        try {
+            const res = await fetch(`/api/listings/${listing.id}/favorite`, {
+                method: prev ? 'DELETE' : 'POST',
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json?.error || 'Favorite failed');
+            setIsFavorite(json.is_favorite ?? !prev);
+        } catch (error) {
+            // Rollback on error
+            setIsFavorite(prev);
+            console.error('Failed to toggle favorite:', error);
+        } finally {
+            setIsTogglingFavorite(false);
+        }
+    };
+
+    const handlePrevImage = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    };
+
+    const handleNextImage = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    };
+
     return (
-        <Card className={`group hover:shadow-lg transition-shadow ${className}`}>
+        <Card className={`group overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-xl transition-all duration-300 ${className}`}>
             <Link href={`/listings/${listing.id}`}>
                 <CardContent className={isGrid ? 'p-0' : 'p-4'}>
                     <div className={isGrid ? 'flex flex-col' : 'flex space-x-4'}>
                         {/* Image */}
-                        <div className={isGrid ? 'relative' : 'w-32 h-32 flex-shrink-0'}>
-                            <img
-                                src={mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
-                                alt={listing.title}
-                                className={`
-                  object-cover bg-muted
-                  ${isGrid ? 'w-full h-48 rounded-t-lg' : 'w-full h-full rounded'}
-                `}
-                            />
+                        <div className={isGrid ? 'relative group/image bg-muted' : 'w-32 h-32 flex-shrink-0 relative bg-muted'}>
+                            <div className="relative w-full h-full overflow-hidden">
+                                <img
+                                    src={mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
+                                    alt={listing.title}
+                                    className={`
+                                      object-cover bg-muted transition-all duration-300 group-hover:scale-105
+                                      ${isGrid ? 'w-full h-56' : 'w-full h-full rounded-lg'}
+                                    `}
+                                />
+
+                                {/* Image carousel navigation - only show if multiple images */}
+                                {hasMultipleImages && (
+                                    <>
+                                        {/* Previous button */}
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/image:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white h-8 w-8"
+                                            onClick={handlePrevImage}
+                                            aria-label="Vorheriges Bild"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </Button>
+
+                                        {/* Next button */}
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/image:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white h-8 w-8"
+                                            onClick={handleNextImage}
+                                            aria-label="Nächstes Bild"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+
+                                        {/* Image indicator dots */}
+                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                                            {images.map((_, index) => (
+                                                <button
+                                                    key={index}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setCurrentImageIndex(index);
+                                                    }}
+                                                    className={`h-1.5 rounded-full transition-all ${
+                                                        index === currentImageIndex
+                                                            ? 'w-6 bg-white'
+                                                            : 'w-1.5 bg-white/50 hover:bg-white/75'
+                                                    }`}
+                                                    aria-label={`Bild ${index + 1}`}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {/* Image counter */}
+                                        <div className="absolute top-2 right-12 opacity-0 group-hover/image:opacity-100 transition-opacity z-10">
+                                            <Badge variant="secondary" className="text-xs bg-black/70 text-white border-0">
+                                                {currentImageIndex + 1} / {images.length}
+                                            </Badge>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
 
                             {/* Overlay badges */}
-                            <div className="absolute top-2 left-2 flex flex-col gap-1">
+                            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                                 <Badge
                                     variant={getConditionVariant(listing.condition)}
-                                    className="text-xs"
+                                    className="text-xs font-medium shadow-sm backdrop-blur-sm bg-background/90 text-foreground"
                                 >
                                     {conditionLabel}
                                 </Badge>
                             </div>
 
                             {/* Favorite button */}
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    // TODO: Implement favorite functionality
-                                }}
-                            >
-                                <Heart className="h-4 w-4" />
-                            </Button>
+                            {user && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background shadow-sm ${
+                                        isFavorite ? 'opacity-100' : ''
+                                    }`}
+                                    onClick={handleToggleFavorite}
+                                    disabled={isTogglingFavorite}
+                                >
+                                    <Heart
+                                        className={`h-4 w-4 transition-colors ${
+                                            isFavorite
+                                                ? 'fill-red-500 text-red-500'
+                                                : 'text-foreground'
+                                        }`}
+                                    />
+                                </Button>
+                            )}
                         </div>
 
                         {/* Content */}
-                        <div className={isGrid ? 'p-4 space-y-3' : 'flex-1 space-y-2'}>
+                        <div className={isGrid ? 'p-5 space-y-3' : 'flex-1 space-y-2'}>
                             {/* Title and Price */}
-                            <div className="space-y-1">
-                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors overflow-hidden" style={{
+                            <div className="space-y-2">
+                                <h3 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors overflow-hidden" style={{
                                     display: '-webkit-box',
                                     WebkitLineClamp: 2,
                                     WebkitBoxOrient: 'vertical'
                                 }}>
                                     {listing.title}
                                 </h3>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-2xl font-bold text-primary">
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <span className="text-2xl font-bold text-foreground">
                                         {priceFormatted}
                                     </span>
                                     {listing.price_negotiable && (
-                                        <Badge variant="outline" className="text-xs">
-                                            Verhandlungsbasis
+                                        <Badge variant="secondary" className="text-xs">
+                                            VB
                                         </Badge>
                                     )}
                                 </div>
                             </div>
 
                             {/* Location and Shipping */}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{listing.location_city}</span>
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    <span className="text-xs">{listing.location_city}</span>
                                 </div>
                                 {listing.shipping_available && (
-                                    <div className="flex items-center gap-1">
-                                        <Truck className="h-4 w-4" />
-                                        <span>Versand</span>
-                                    </div>
-                                )}
-                                {listing.pickup_available && (
-                                    <div className="flex items-center gap-1">
-                                        <User className="h-4 w-4" />
-                                        <span>Abholung</span>
-                                    </div>
+                                    <Badge variant="outline" className="text-xs gap-1">
+                                        <Truck className="h-3 w-3" />
+                                        Versand
+                                    </Badge>
                                 )}
                             </div>
 
                             {/* Seller Info */}
                             {showSeller && 'seller' in listing && listing.seller && (
-                                <Link href={`/users/${listing.seller.username}`} className="flex items-center gap-2 pt-2 border-t hover:opacity-90">
-                                    <Avatar className="h-6 w-6">
+                                <Link href={`/users/${listing.seller.username}`} className="flex items-center gap-2.5 pt-3 border-t border-border/50 hover:opacity-80 transition-opacity">
+                                    <Avatar className="h-8 w-8 ring-2 ring-background">
                                         <AvatarImage src={listing.seller.avatar_url || undefined} />
-                                        <AvatarFallback className="text-xs">
+                                        <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
                                             {listing.seller.username.substring(0, 2).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
@@ -143,47 +276,37 @@ export function ListingCard({
                                         <p className="text-sm font-medium truncate">
                                             {listing.seller.username}
                                         </p>
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                            <span>{listing.seller.seller_rating.toFixed(1)}</span>
-                                            <span>•</span>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                            <span className="font-medium">{listing.seller.seller_rating.toFixed(1)}</span>
+                                            <span className="text-muted-foreground/50">•</span>
                                             <span>{listing.seller.total_sales} Verkäufe</span>
                                         </div>
                                     </div>
                                 </Link>
                             )}
 
-                            {/* Stats */}
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                    <Eye className="h-3 w-3" />
-                                    <span>{listing.views} Aufrufe</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Heart className="h-3 w-3" />
-                                    <span>{listing.favorites_count} Favoriten</span>
-                                </div>
+                            {/* Stats - More subtle */}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
                                 <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     <span>{formatDate(listing.created_at)}</span>
                                 </div>
-                            </div>
-
-                            {/* Tags */}
-                            {listing.tags && listing.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                    {listing.tags.slice(0, 3).map((tag, index) => (
-                                        <Badge key={index} variant="outline" className="text-xs">
-                                            {tag}
-                                        </Badge>
-                                    ))}
-                                    {listing.tags.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">
-                                            +{listing.tags.length - 3}
-                                        </Badge>
-                                    )}
+                                <span className="text-muted-foreground/30">•</span>
+                                <div className="flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    <span>{listing.views}</span>
                                 </div>
-                            )}
+                                {listing.favorites_count > 0 && (
+                                    <>
+                                        <span className="text-muted-foreground/30">•</span>
+                                        <div className="flex items-center gap-1">
+                                            <Heart className="h-3 w-3" />
+                                            <span>{listing.favorites_count}</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </CardContent>

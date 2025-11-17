@@ -13,6 +13,7 @@ import { InlineUsernameSetter } from '@/components/features/profile/InlineUserna
 import { UserProfileHeader } from '@/components/features/profile/UserProfileHeader';
 import { UserStatsStrip } from '@/components/features/profile/UserStatsStrip';
 import { ListingCard } from '@/components/features/listings/ListingCard';
+import { UserRatingsSection } from '@/components/features/ratings/UserRatingsSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,12 @@ export default async function ProfilePage() {
                         </div>
                     </div>
                 )}
+
+                {/* Ratings Section */}
+                <div>
+                    <h2 className="mb-4 text-xl font-semibold">Meine Bewertungen</h2>
+                    <UserRatingsSection userId={profile.id} limit={10} />
+                </div>
 
             </div>
         </div>
