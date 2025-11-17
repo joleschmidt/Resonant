@@ -1,0 +1,426 @@
+# Resonant – Cursor AI Rules
+
+## Project Identity
+
+```yaml
+project_name: "Resonant"
+project_type: "kleinanzeigen_clone_marketplace"
+domain: "guitar_equipment_classifieds"
+target_market: "germany"
+tech_stack: ["nextjs_15", "typescript", "supabase", "tailwind", "shadcn_ui", "zustand", "react_query"]
+focus: "trust_and_safety_for_musicians"
+```
+
+## Critical Context
+
+This is a **German 1:1 Kleinanzeigen clone**, specialized exclusively for:
+- Guitars (electric, acoustic, bass)
+- Amplifiers
+- Effects pedals
+- Recording gear
+- Guitar accessories (cases, strings, pickups, etc.)
+
+**Core Mission:** Provide German musicians with a scam-free alternative to generic classifieds platforms, where both buyers and sellers can transact without constant fear of fraud.
+
+---
+
+## 🔴 CRITICAL RULES (Never Break)
+
+### Security & Auth
+- **Primary auth method: Passkeys (WebAuthn)** via Supabase Auth
+- **Mandatory MFA:** Supabase TOTP for sensitive actions (payouts, high-value transactions)
+- **Fallback methods:** SMS OTP, Email magic links (never passwords as primary)
+- **RLS enforcement:** Every database table MUST have Row Level Security policies
+- **Never bypass security:** No raw SQL that circumvents RLS, no service role key in client code
+- **Data classification:**
+  - Public: listings, public profiles
+  - Protected: email, phone, messages, transaction metadata
+  - Restricted: payment info, identity docs, admin logs
+
+### Type Safety
+- **TypeScript strict mode** – absolutely NO `any` types
+- All props interfaces must be explicitly typed
+- All Supabase queries must use generated types from `src/types/database.ts`
+- Zod schemas for ALL form validation and API input validation
+
+### DSGVO & Privacy
+- Host in EU (Frankfurt) Supabase region
+- Minimal data collection – only what's necessary
+- Clear consent flows for data processing
+- Proper Impressum, Datenschutz, AGB pages
+
+### Domain Focus
+- **ONLY guitar-related equipment** – no generic classifieds
+- Enforce category restrictions at database and UI level
+- Use guitar-specific validation (brands, conditions, price ranges)
+
+---
+
+## 🟡 High Priority Rules
+
+### Component Architecture
+- **shadcn/ui ONLY** for all UI components
+- Follow this pattern strictly:
+
+```typescript
+interface ComponentProps {
+  // Explicit props
+}
+
+const Component: React.FC<ComponentProps> = ({ ...props }) => {
+  // 1. Hooks at top
+  // 2. Event handlers
+  // 3. Early returns (loading/error)
+  // 4. Main render
+};
+
+Component.displayName = 'Component';
+export default Component;
+```
+
+### State Management
+- **Client state:** Zustand stores (`src/stores/`)
+- **Server state:** React Query with proper patterns:
+
+```typescript
+const useSomething = () => {
+  return useQuery({
+    queryKey: ['resource', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('table')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+```
+
+### Error Handling
+- User-friendly German error messages in UI
+- Comprehensive error boundaries for all major features
+- Server-side logging (without exposing sensitive data)
+- Never show raw error objects to users
+
+### Mobile First
+- Design mobile-first, enhance for desktop
+- Touch-friendly tap targets (min 44x44px)
+- Responsive layouts with Tailwind breakpoints
+- Test on mobile viewports regularly
+
+---
+
+## 🟢 Standard Rules
+
+### File Structure (Enforced)
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Protected routes
+│   ├── actions/           # Server Actions
+│   └── api/               # API routes
+├── components/
+│   ├── ui/                # shadcn/ui base components
+│   ├── features/          # Feature-specific (auth, listings, messaging)
+│   └── layout/            # Header, Footer, Navigation
+├── lib/
+│   ├── supabase/          # Supabase clients
+│   ├── security/          # Security utilities
+│   └── validations/       # Zod schemas
+├── hooks/                 # Custom React hooks
+├── stores/                # Zustand stores
+├── types/                 # TypeScript definitions
+└── utils/                 # Helper functions
+```
+
+### Code Style
+- Use Prettier + ESLint (existing config)
+- Consistent naming: camelCase for variables/functions, PascalCase for components
+- Destructure props in function signature
+- Keep functions small and focused
+
+### Accessibility
+- WCAG 2.1 AA compliance
+- Proper ARIA labels on interactive elements
+- Keyboard navigation support (especially modals/dialogs)
+- Focus management in dynamic UIs
+
+---
+
+## Business Logic Context
+
+### User Verification Levels
+
+```yaml
+user_levels:
+  basic:
+    - can_view_listings: true
+    - can_message: false
+    - requires: email_verified
+  
+  verified:
+    - can_create_listings: true
+    - can_message: true
+    - max_active_listings: 5
+    - requires: email_verified + phone_verified
+  
+  trusted:
+    - max_active_listings: 20
+    - priority_support: true
+    - requires: verified + mfa_enabled + good_rating_history
+  
+  store:
+    - max_active_listings: 100
+    - bulk_operations: true
+    - custom_branding: true
+    - requires: identity_verified + business_registration
+```
+
+### Guitar Categories & Validation
+
+```yaml
+allowed_categories:
+  guitars:
+    - electric_guitar
+    - acoustic_guitar
+    - classical_guitar
+    - bass_guitar
+  
+  amplifiers:
+    - guitar_amp
+    - bass_amp
+    - acoustic_amp
+  
+  effects:
+    - distortion
+    - overdrive
+    - delay
+    - reverb
+    - modulation
+    - multi_effects
+  
+  accessories:
+    - cases
+    - strings
+    - pickups
+    - cables
+    - stands
+    - straps
+
+condition_hierarchy:
+  - mint          # Like new, no wear
+  - excellent     # Minimal wear, fully functional
+  - very_good     # Light wear, no defects
+  - good          # Moderate wear, minor issues
+  - fair          # Significant wear, needs work
+  - poor          # Major issues, parts guitar
+
+brand_tiers:
+  premium: ["Fender", "Gibson", "Martin", "Taylor", "PRS"]
+  mid_range: ["Ibanez", "ESP", "Yamaha", "Gretsch", "Rickenbacker"]
+  entry: ["Epiphone", "Squier", "Jackson", "Schecter", "LTD"]
+```
+
+### Price Validation & Fraud Detection
+
+```yaml
+pricing_rules:
+  min_price: 50          # EUR
+  max_price: 50000       # EUR
+  suspicious_low: 100    # Flag for manual review
+  suspicious_high: 20000 # Flag for manual review
+  currency: "EUR"
+  
+fraud_signals:
+  - price_too_low_for_brand
+  - new_account_high_value_listing
+  - duplicate_images_from_other_listings
+  - contact_info_in_description
+  - external_payment_requests
+  - suspicious_location_changes
+```
+
+---
+
+## Trust & Anti-Scam Features
+
+### UI Trust Signals (Always Display)
+- ✅ Verification badges (email, phone, identity)
+- 📅 Account age
+- ⭐ Seller rating & review count
+- 📊 Transaction history count
+- 🔒 MFA enabled indicator
+
+### Anti-Scam UX Patterns
+- **Never encourage off-platform communication** early in the flow
+- Show warnings like: "⚠️ Zahle niemals per Vorkasse an Fremde"
+- Display scam indicators: "Preis verdächtig niedrig für diese Marke"
+- Easy report buttons on listings, profiles, messages
+- Automatic flagging of suspicious patterns (external links, phone numbers in descriptions)
+
+### Messaging Safety
+- No external links allowed in first 3 messages
+- Phone numbers automatically redacted until both parties agree
+- Built-in "Report Scam" button in every conversation
+- Track message response times and flag instant copy-paste replies
+
+---
+
+## API & Data Patterns
+
+### API Route Structure
+```typescript
+// app/api/[resource]/route.ts
+export async function GET(request: Request) {
+  try {
+    // 1. Auth check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // 2. Input validation with Zod
+    const params = schema.parse(await request.json());
+    
+    // 3. Database query (RLS enforced)
+    const { data, error } = await supabase
+      .from('table')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    if (error) throw error;
+    
+    // 4. Return typed response
+    return NextResponse.json(data);
+  } catch (error) {
+    // 5. Error handling
+    console.error('[API Error]', error);
+    return NextResponse.json(
+      { error: 'Ein Fehler ist aufgetreten' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Supabase Client Usage
+- **Client-side:** Use `createClient()` from `src/lib/supabase/client.ts`
+- **Server-side:** Use `createServerClient()` from `src/lib/supabase/server.ts`
+- **Never** use service role key in client code
+- Always handle `null` from auth states gracefully
+
+---
+
+## Performance Requirements
+
+### Core Web Vitals Targets
+```yaml
+performance:
+  LCP: "< 2.5s"   # Largest Contentful Paint
+  FID: "< 100ms"  # First Input Delay
+  CLS: "< 0.1"    # Cumulative Layout Shift
+  TTI: "< 3.5s"   # Time to Interactive
+```
+
+### Caching Strategy
+```yaml
+cache_times:
+  static_assets: "1 year"
+  listings_list: "2 minutes"
+  listing_detail: "5 minutes"
+  user_profile: "10 minutes"
+  search_results: "1 minute"
+```
+
+---
+
+## Development Workflow
+
+### When Creating New Features
+1. Check if shadcn/ui component exists → use it
+2. Create Zod schema for validation FIRST
+3. Implement with TypeScript strict types
+4. Add loading and error states
+5. Test on mobile viewport
+6. Add accessibility attributes
+7. Document complex business logic
+
+### When Working with Auth
+1. Always use Supabase Auth APIs
+2. Implement passkey flow as primary
+3. Add MFA for sensitive actions
+4. Provide SMS/magic link fallbacks
+5. Never store auth tokens manually
+
+### When Working with Database
+1. Verify RLS policies exist
+2. Use typed Supabase client
+3. Handle errors gracefully
+4. Add indexes for performance
+5. Write migration scripts for schema changes
+
+---
+
+## Code Generation Instructions
+
+### For New Components:
+- Use shadcn/ui as base
+- Add proper TypeScript interfaces
+- Include loading/error states
+- Add ARIA labels and keyboard support
+- German text for user-facing strings
+
+### For New API Endpoints:
+- Validate input with Zod
+- Check authentication
+- Enforce RLS (rely on Supabase)
+- Return proper HTTP status codes
+- Log errors server-side
+
+### For New Database Tables:
+- Add RLS policies immediately
+- Create indexes for common queries
+- Use proper foreign key constraints
+- Add created_at/updated_at timestamps
+- Write migration in `supabase/migrations/`
+
+---
+
+## Response Style for AI Assistant
+
+- **Be direct:** Give actual code, not "here's how you could..."
+- **Be concise:** Show only relevant snippets (few lines before/after changes)
+- **Be German:** Use German for UI copy, error messages, and user-facing text
+- **Be expert-level:** Don't explain basics, assume technical knowledge
+- **Be specific:** Use exact file paths, function names, types
+- **Flag speculation:** If guessing, say so explicitly
+
+---
+
+## MCP Server Priority
+
+- **Always check MCP servers first** before implementing custom solutions
+- Use `mcp_supabase_*` tools for database operations
+- Use `mcp_cursor-ide-browser_*` for testing UI flows
+- Only bypass MCP if functionality doesn't exist or user explicitly requests otherwise
+
+---
+
+## Continuous Updates
+
+Update this file when:
+- New security requirements emerge
+- Guitar domain knowledge expands (new categories, brands)
+- Performance patterns change
+- User feedback reveals new anti-scam needs
+- Technical stack evolves
+
+---
+
+**Version:** 2.0 (Kleinanzeigen Clone with Passkey Auth)  
+**Last Updated:** 2025-11-17
+
