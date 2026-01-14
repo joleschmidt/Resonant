@@ -26,7 +26,7 @@ export const VERIFICATION_STATUS = {
 export type VerificationStatus =
   (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
 
-// Listing Categories
+// Listing Categories (Legacy - deprecated, use Thomann categories)
 export const LISTING_CATEGORIES = {
   GUITARS: 'guitars',
   AMPS: 'amps',
@@ -34,6 +34,9 @@ export const LISTING_CATEGORIES = {
 } as const;
 
 export type ListingCategory = (typeof LISTING_CATEGORIES)[keyof typeof LISTING_CATEGORIES];
+
+// Thomann Category System - Complete 3-level hierarchy
+export * from './thomann-categories';
 
 // Guitar Brands (Tier Classification)
 export const GUITAR_BRANDS = {

@@ -85,7 +85,7 @@ export function RatingModal({
                                     onClick={() => setScore(value)}
                                     onMouseEnter={() => setHoveredScore(value)}
                                     onMouseLeave={() => setHoveredScore(0)}
-                                    className="transition-transform hover:scale-110"
+                                    className="transition-colors"
                                 >
                                     <Star
                                         className={`w-8 h-8 ${value <= (hoveredScore || score)

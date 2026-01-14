@@ -52,6 +52,19 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Kleinanzeigen brand colors
+        kleinanzeigen: {
+          green: {
+            DEFAULT: '#00A650',
+            dark: '#008A43',
+            light: '#E8F5E9',
+          },
+          gray: {
+            DEFAULT: '#707070',
+            light: '#F5F5F5',
+            dark: '#333333',
+          },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

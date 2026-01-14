@@ -22,7 +22,7 @@ export function BottomTabs() {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 inset-x-0 z-60 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-[0_-1px_8px_rgba(0,0,0,0.04)] md:hidden">
+        <nav className="fixed bottom-0 inset-x-0 z-60 border-t bg-background shadow-[0_-1px_8px_rgba(0,0,0,0.04)] md:hidden">
             <ul className="grid grid-cols-5 h-14 items-center w-full">
                 {TABS.map(({ href, label, icon: Icon }) => {
                     const active = pathname === href || (href !== '/' && pathname.startsWith(href));

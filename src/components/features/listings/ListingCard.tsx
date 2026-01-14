@@ -123,7 +123,7 @@ export function ListingCard({
     };
 
     return (
-        <Card className={`group overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-xl transition-all duration-300 ${className}`}>
+        <Card className={`group overflow-hidden border-border/50 hover:border-primary/30 hover:shadow-md transition-colors ${className}`}>
             <Link href={`/listings/${listing.id}`}>
                 <CardContent className={isGrid ? 'p-0' : 'p-4'}>
                     <div className={isGrid ? 'flex flex-col' : 'flex space-x-4'}>
@@ -134,7 +134,7 @@ export function ListingCard({
                                     src={mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                     alt={listing.title}
                                     className={`
-                                      object-cover bg-muted transition-all duration-300 group-hover:scale-105
+                                      object-cover bg-muted
                                       ${isGrid ? 'w-full h-56' : 'w-full h-full rounded-lg'}
                                     `}
                                 />
@@ -198,7 +198,7 @@ export function ListingCard({
                             <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                                 <Badge
                                     variant={getConditionVariant(listing.condition)}
-                                    className="text-xs font-medium shadow-sm backdrop-blur-sm bg-background/90 text-foreground"
+                                    className="text-xs font-medium shadow-sm bg-background text-foreground"
                                 >
                                     {conditionLabel}
                                 </Badge>
@@ -209,7 +209,7 @@ export function ListingCard({
                                 <Button
                                     size="sm"
                                     variant="ghost"
-                                    className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background shadow-sm ${
+                                    className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 h-8 w-8 rounded-full bg-background hover:bg-background shadow-sm ${
                                         isFavorite ? 'opacity-100' : ''
                                     }`}
                                     onClick={handleToggleFavorite}
@@ -343,12 +343,53 @@ function getConditionVariant(condition: string): 'default' | 'secondary' | 'dest
 }
 
 function getCategoryLabel(category: string): string {
+    // Comprehensive category label mapping
     const labels: Record<string, string> = {
-        [LISTING_CATEGORIES.GUITARS]: 'Gitarre',
-        [LISTING_CATEGORIES.AMPS]: 'Verstärker',
-        [LISTING_CATEGORIES.EFFECTS]: 'Effekt'
+        // Main categories (legacy)
+        [LISTING_CATEGORIES.GUITARS]: 'Gitarren',
+        [LISTING_CATEGORIES.AMPS]: 'Amps',
+        [LISTING_CATEGORIES.EFFECTS]: 'Effekte',
+        
+        // Thomann instrument categories
+        'e_gitarren': 'E-Gitarren',
+        'konzertgitarren': 'Konzertgitarren',
+        'westerngitarren': 'Westerngitarren',
+        'e_baesse': 'E-Bässe',
+        'akustikbaesse': 'Akustikbässe',
+        'ukulelen': 'Ukulelen',
+        'bluegrass': 'Bluegrass',
+        'travelgitarren': 'Travel-Gitarren',
+        'sonstige_saiteninstrumente': 'Sonstige Saiteninstrumente',
+        
+        // Amplifier categories
+        'e_gitarren_verstaerker': 'E-Gitarren Verstärker',
+        'bass_verstaerker': 'Bass Verstärker',
+        'akustik_verstaerker': 'Akustik Verstärker',
+        'combo_verstaerker': 'Combo Verstärker',
+        'amp_heads': 'Amp Heads',
+        'cabinets': 'Cabinets',
+        
+        // Effects categories
+        'gitarreneffekte': 'Gitarreneffekte',
+        'bass_effekte': 'Bass Effekte',
+        'multi_effekte': 'Multi-Effekte',
+        'rack_effekte': 'Rack-Effekte',
+        
+        // Accessories
+        'gitarrenzubehoer': 'Gitarrenzubehör',
+        'basszubehoer': 'Basszubehör',
     };
-    return labels[category] || category;
+    
+    // If we have a direct mapping, return it
+    if (labels[category]) {
+        return labels[category];
+    }
+    
+    // Fallback: convert snake_case to readable German
+    return category
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 }
 
 function formatDate(dateString: string): string {

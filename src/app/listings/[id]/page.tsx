@@ -100,12 +100,54 @@ const getConditionVariant = (condition: string) => {
 };
 
 const getCategoryLabel = (category: string) => {
+    // Comprehensive category label mapping
     const labels: Record<string, string> = {
+        // Main categories (legacy)
         'guitars': 'Gitarren',
         'amps': 'Amps',
-        'effects': 'Effekte'
+        'effects': 'Effekte',
+        
+        // Thomann instrument categories
+        'e_gitarren': 'E-Gitarren',
+        'konzertgitarren': 'Konzertgitarren',
+        'westerngitarren': 'Westerngitarren',
+        'e_baesse': 'E-Bässe',
+        'akustikbaesse': 'Akustikbässe',
+        'ukulelen': 'Ukulelen',
+        'bluegrass': 'Bluegrass',
+        'travelgitarren': 'Travel-Gitarren',
+        'sonstige_saiteninstrumente': 'Sonstige Saiteninstrumente',
+        
+        // Amplifier categories
+        'e_gitarren_verstaerker': 'E-Gitarren Verstärker',
+        'bass_verstaerker': 'Bass Verstärker',
+        'akustik_verstaerker': 'Akustik Verstärker',
+        'combo_verstaerker': 'Combo Verstärker',
+        'amp_heads': 'Amp Heads',
+        'cabinets': 'Cabinets',
+        
+        // Effects categories
+        'gitarreneffekte': 'Gitarreneffekte',
+        'bass_effekte': 'Bass Effekte',
+        'multi_effekte': 'Multi-Effekte',
+        'rack_effekte': 'Rack-Effekte',
+        
+        // Accessories
+        'gitarrenzubehoer': 'Gitarrenzubehör',
+        'basszubehoer': 'Basszubehör',
     };
-    return labels[category] || category;
+    
+    // If we have a direct mapping, return it
+    if (labels[category]) {
+        return labels[category];
+    }
+    
+    // Fallback: convert snake_case to readable German
+    // Split by underscore, capitalize first letter of each word, join with space
+    return category
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 };
 
 export default function ListingDetailPage() {
@@ -287,6 +329,7 @@ export default function ListingDetailPage() {
                             size="sm"
                             onClick={() => router.push('/listings')}
                             className="text-muted-foreground hover:text-foreground"
+                            type="button"
                         >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Zurück
@@ -314,6 +357,7 @@ export default function ListingDetailPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => window.location.href = `/listings/${listing.id}/edit`}
+                            type="button"
                         >
                             Bearbeiten
                         </Button>
@@ -325,7 +369,7 @@ export default function ListingDetailPage() {
                     <div className="h-full flex flex-col gap-3 pb-2">
                         {/* Main Image with mobile overlay controls */}
                         <div className="relative flex-1 min-h-0">
-                            <button className="block w-full h-full rounded-lg overflow-hidden bg-muted" onClick={() => setLightboxOpen(true)}>
+                            <button type="button" className="block w-full h-full rounded-lg overflow-hidden bg-muted" onClick={() => setLightboxOpen(true)}>
                                 <img
                                     src={listing.images?.[currentImageIndex] || mainImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='}
                                     alt={listing.title}
@@ -335,11 +379,11 @@ export default function ListingDetailPage() {
                             {/* Mobile-only top overlay icons */}
                             <div className="absolute inset-0 pointer-events-none sm:hidden">
                                 <div className="flex items-start justify-between p-3">
-                                    <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Zurück" onClick={() => router.back()}>
+                                    <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Zurück" onClick={() => router.back()} type="button">
                                         <ArrowLeft className="w-4 h-4" />
                                     </Button>
                                     {isOwner && (
-                                        <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Bearbeiten" onClick={() => window.location.href = `/listings/${listing.id}/edit`}>
+                                        <Button variant="secondary" size="icon" className="pointer-events-auto bg-white/90 text-foreground shadow hover:bg-white" aria-label="Bearbeiten" onClick={() => window.location.href = `/listings/${listing.id}/edit`} type="button">
                                             <Pencil className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -353,6 +397,7 @@ export default function ListingDetailPage() {
                                 {listing.images.map((image, index) => (
                                     <button
                                         key={index}
+                                        type="button"
                                         onClick={() => setCurrentImageIndex(index)}
                                         className={`rounded-lg overflow-hidden border-2 transition-colors ${currentImageIndex === index
                                             ? 'border-primary'
@@ -403,37 +448,60 @@ export default function ListingDetailPage() {
                         {/* Price */}
                         <Card>
                             <CardContent className="p-4 sm:p-6">
-                                <div className="flex items-baseline gap-3 mb-2">
-                                    <span className="text-3xl font-bold">{listing.price.toLocaleString('de-DE')} €</span>
-                                    {listing.original_price && (
-                                        <span className="text-lg text-muted-foreground line-through">
-                                            {listing.original_price.toLocaleString('de-DE')} €
-                                        </span>
-                                    )}
-                                </div>
+                                <div className="space-y-4">
+                                    {/* Price + discount */}
+                                    <div className="flex items-end justify-between gap-3">
+                                        <div className="space-y-2">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-3xl sm:text-4xl font-bold tracking-tight">
+                                                    {listing.price.toLocaleString('de-DE')} €
+                                                </span>
+                                                {listing.original_price && (
+                                                    <span className="text-lg text-muted-foreground line-through">
+                                                        {listing.original_price.toLocaleString('de-DE')} €
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                {listing.price_negotiable && (
-                                    <p className="text-sm text-muted-foreground mb-2 sm:mb-4">Verhandlungsbasis</p>
-                                )}
+                                            {listing.price_negotiable && (
+                                                <span className="inline-flex items-center rounded-full border border-dashed px-2.5 py-0.5 text-xs font-medium text-foreground/80 bg-muted/70">
+                                                    <Euro className="w-3 h-3 mr-1" />
+                                                    Verhandlungsbasis
+                                                </span>
+                                            )}
+                                        </div>
 
-                                <div className="space-y-0 lg:space-y-3">
-                                    {/* Mobile actions in price container: like, share, buy now */}
-                                    <div className="flex items-center justify-between gap-2 lg:hidden mb-2">
+                                        {listing.original_price &&
+                                            listing.original_price > listing.price && (
+                                                <Badge variant="secondary" className="text-xs font-medium">
+                                                    -
+                                                    {Math.round(
+                                                        100 - (listing.price / listing.original_price) * 100
+                                                    )}
+                                                    %
+                                                </Badge>
+                                            )}
+                                    </div>
+
+                                    {/* Mobile quick actions */}
+                                    <div className="flex items-center justify-between gap-2 lg:hidden">
                                         <div className="flex items-center gap-2">
-                                            <Button 
-                                                variant={isFavorite ? 'destructive' : 'outline'} 
-                                                size="icon" 
-                                                aria-label="Merken" 
-                                                onClick={handleToggleFavorite} 
+                                            <Button
+                                                variant={isFavorite ? 'destructive' : 'outline'}
+                                                size="icon"
+                                                aria-label="Merken"
+                                                onClick={handleToggleFavorite}
                                                 disabled={isTogglingFavorite}
                                                 type="button"
                                             >
-                                                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                                                <Heart
+                                                    className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
+                                                />
                                             </Button>
-                                            <Button 
-                                                variant="outline" 
-                                                size="icon" 
-                                                aria-label="Teilen" 
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                aria-label="Teilen"
                                                 onClick={handleShare}
                                                 type="button"
                                             >
@@ -442,112 +510,129 @@ export default function ListingDetailPage() {
                                         </div>
                                         <Button
                                             size="sm"
-                                            className="bg-green-600 hover:bg-green-700"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white"
                                             onClick={() => setShowBuyNow(true)}
+                                            type="button"
                                         >
                                             <Package className="w-4 h-4 mr-2" />
                                             Sofort kaufen
                                         </Button>
                                     </div>
-                                    <div className="hidden lg:flex gap-2">
+
+                                    {/* Desktop CTAs: clean stack */}
+                                    <div className="hidden lg:space-y-3 lg:block">
+                                        {/* Primary: message seller */}
                                         <MessageModal
                                             recipientId={listing.seller_id}
                                             recipientUsername={listing.profiles?.username || 'Verkäufer'}
                                             listingId={listing.id}
                                             listingTitle={listing.title}
                                             trigger={
-                                                <Button size="lg" className="flex-1">
+                                                <Button size="lg" className="w-full">
                                                     <MessageCircle className="w-4 h-4 mr-2" />
                                                     Nachricht senden
                                                 </Button>
                                             }
                                         />
-                                    <Button 
-                                        variant={isFavorite ? 'destructive' : 'outline'} 
-                                        size="lg" 
-                                        onClick={handleToggleFavorite} 
-                                        disabled={isTogglingFavorite}
-                                        type="button"
-                                    >
-                                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                                        {typeof favoritesCount === 'number' && (
-                                            <span className="ml-2 text-sm">{favoritesCount}</span>
-                                        )}
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        size="lg" 
-                                        onClick={handleShare}
-                                        type="button"
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                    </Button>
-                                    </div>
 
-                                    {/* Price offer and buy now buttons */}
-                                    <div className="hidden lg:flex gap-2">
-                                        <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
-                                            <DialogTrigger asChild>
-                                                <Button variant="secondary" size="lg" className="flex-1">
-                                                    <Euro className="w-4 h-4 mr-2" />
-                                                    Preisvorschlag
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Preisvorschlag machen</DialogTitle>
-                                                </DialogHeader>
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <Label htmlFor="offer-amount">Dein Angebot (€)</Label>
-                                                        <Input
-                                                            id="offer-amount"
-                                                            type="number"
-                                                            value={offerAmount}
-                                                            onChange={(e) => setOfferAmount(e.target.value)}
-                                                            placeholder={`Aktueller Preis: ${listing.price.toLocaleString('de-DE')}€`}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <Label htmlFor="offer-message">Nachricht (optional)</Label>
-                                                        <textarea
-                                                            id="offer-message"
-                                                            value={offerMessage}
-                                                            onChange={(e) => setOfferMessage(e.target.value)}
-                                                            placeholder="Füge eine Nachricht zu deinem Angebot hinzu..."
-                                                            className="w-full mt-1 p-3 border rounded-lg"
-                                                            rows={3}
-                                                        />
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Button 
-                                                            onClick={handlePriceOffer} 
-                                                            className="flex-1"
-                                                            type="button"
-                                                        >
-                                                            Angebot senden
-                                                        </Button>
-                                                        <Button 
-                                                            variant="outline" 
-                                                            onClick={() => setShowPriceOffer(false)} 
-                                                            className="flex-1"
-                                                            type="button"
-                                                        >
-                                                            Abbrechen
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </DialogContent>
-                                        </Dialog>
+                                        {/* Secondary row: fav, offer, buy now */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <Button
+                                                variant={isFavorite ? 'destructive' : 'outline'}
+                                                size="lg"
+                                                onClick={handleToggleFavorite}
+                                                disabled={isTogglingFavorite}
+                                                type="button"
+                                                className="flex items-center justify-center gap-2"
+                                            >
+                                                <Heart
+                                                    className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
+                                                />
+                                                {typeof favoritesCount === 'number' && (
+                                                    <span className="text-sm">{favoritesCount}</span>
+                                                )}
+                                            </Button>
 
-                                        <Button
-                                            size="lg"
-                                            className="flex-1 bg-green-600 hover:bg-green-700"
-                                            onClick={() => setShowBuyNow(true)}
-                                        >
-                                            <Package className="w-4 h-4 mr-2" />
-                                            Sofort kaufen
-                                        </Button>
+                                            <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="lg"
+                                                        type="button"
+                                                        className="flex items-center justify-center gap-2"
+                                                    >
+                                                        <Euro className="w-4 h-4" />
+                                                        Preisvorschlag
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Preisvorschlag machen</DialogTitle>
+                                                    </DialogHeader>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <Label htmlFor="offer-amount">Dein Angebot (€)</Label>
+                                                            <Input
+                                                                id="offer-amount"
+                                                                type="number"
+                                                                value={offerAmount}
+                                                                onChange={(e) => setOfferAmount(e.target.value)}
+                                                                placeholder={`Aktueller Preis: ${listing.price.toLocaleString(
+                                                                    'de-DE'
+                                                                )}€`}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="offer-message">Nachricht (optional)</Label>
+                                                            <textarea
+                                                                id="offer-message"
+                                                                value={offerMessage}
+                                                                onChange={(e) => setOfferMessage(e.target.value)}
+                                                                placeholder="Füge eine Nachricht zu deinem Angebot hinzu..."
+                                                                className="w-full mt-1 p-3 border rounded-lg"
+                                                                rows={3}
+                                                            />
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                onClick={handlePriceOffer}
+                                                                className="flex-1"
+                                                                type="button"
+                                                            >
+                                                                Angebot senden
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() => setShowPriceOffer(false)}
+                                                                className="flex-1"
+                                                                type="button"
+                                                            >
+                                                                Abbrechen
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
+
+                                            <Button
+                                                size="lg"
+                                                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                                                onClick={() => setShowBuyNow(true)}
+                                                type="button"
+                                            >
+                                                <Package className="w-4 h-4" />
+                                                Sofort kaufen
+                                            </Button>
+                                        </div>
+
+                                        {/* Meta row */}
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>{listing.views} Aufrufe</span>
+                                            {typeof favoritesCount === 'number' && (
+                                                <span>{favoritesCount} Merker</span>
+                                            )}
+                                        </div>
+
                                         <BuyNowModal
                                             open={showBuyNow}
                                             onOpenChange={setShowBuyNow}
@@ -662,7 +747,7 @@ export default function ListingDetailPage() {
                         />
                         <Dialog open={showPriceOffer} onOpenChange={setShowPriceOffer}>
                             <DialogTrigger asChild>
-                                <Button variant="secondary" className="flex-1">
+                                <Button variant="secondary" className="flex-1" type="button">
                                     <Euro className="w-4 h-4 mr-2" />
                                     Preisvorschlag
                                 </Button>
@@ -676,7 +761,7 @@ export default function ListingDetailPage() {
                     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
                         <div className="flex items-center justify-between p-4 text-white">
                             <div className="text-sm">{currentImageIndex + 1} / {listing.images?.length || 1}</div>
-                            <button onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
+                            <button type="button" onClick={() => setLightboxOpen(false)} className="text-white/80 hover:text-white">Schließen</button>
                         </div>
                         <div className="relative flex-1 flex items-center justify-center select-none overflow-hidden">
                             <img
@@ -685,6 +770,7 @@ export default function ListingDetailPage() {
                                 className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                             />
                             <button
+                                type="button"
                                 className="absolute left-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-black/50 text-white hover:bg-black/70"
                                 onClick={() => setCurrentImageIndex(i => (i > 0 ? i - 1 : (listing.images?.length || 1) - 1))}
                                 aria-label="Vorheriges Bild"
@@ -692,6 +778,7 @@ export default function ListingDetailPage() {
                                 ‹
                             </button>
                             <button
+                                type="button"
                                 className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-black/50 text-white hover:bg-black/70"
                                 onClick={() => setCurrentImageIndex(i => (i < (listing.images?.length || 1) - 1 ? i + 1 : 0))}
                                 aria-label="Nächstes Bild"
@@ -714,9 +801,9 @@ export default function ListingDetailPage() {
                                             {listing.description}
                                         </p>
                                         <div className="mt-3">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm" 
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => setShowFullDescription((v) => !v)}
                                                 type="button"
                                             >
@@ -754,6 +841,75 @@ export default function ListingDetailPage() {
                                     </ul>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Daten Section */}
+                <div className="mt-8">
+                    <Card>
+                        <CardContent className="p-6">
+                            <h2 className="text-xl font-semibold mb-4">Daten</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Kategorie:</span>
+                                    <span>{categoryLabel}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Zustand:</span>
+                                    <span>{conditionLabel}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Preis:</span>
+                                    <span className="font-semibold">{listing.price.toLocaleString('de-DE')} €</span>
+                                </div>
+                                {listing.original_price && (
+                                    <div className="flex justify-between">
+                                        <span className="font-medium text-muted-foreground">Ursprünglicher Preis:</span>
+                                        <span className="line-through text-muted-foreground">
+                                            {listing.original_price.toLocaleString('de-DE')} €
+                                        </span>
+                                    </div>
+                                )}
+                                {listing.price_negotiable && (
+                                    <div className="flex justify-between">
+                                        <span className="font-medium text-muted-foreground">Verhandlungsbasis:</span>
+                                        <span>Ja</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Standort:</span>
+                                    <span>{listing.location_city}, {listing.location_state}</span>
+                                </div>
+                                {listing.location_postal_code && (
+                                    <div className="flex justify-between">
+                                        <span className="font-medium text-muted-foreground">PLZ:</span>
+                                        <span>{listing.location_postal_code}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Versand:</span>
+                                    <span>{listing.shipping_available ? 'Ja' : 'Nein'}</span>
+                                </div>
+                                {listing.shipping_available && listing.shipping_cost && (
+                                    <div className="flex justify-between">
+                                        <span className="font-medium text-muted-foreground">Versandkosten:</span>
+                                        <span>{listing.shipping_cost} €</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Abholung:</span>
+                                    <span>{listing.pickup_available ? 'Ja' : 'Nein'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Erstellt am:</span>
+                                    <span>{new Date(listing.created_at).toLocaleDateString('de-DE')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-medium text-muted-foreground">Aufrufe:</span>
+                                    <span>{listing.views}</span>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

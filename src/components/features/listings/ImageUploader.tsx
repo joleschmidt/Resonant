@@ -173,8 +173,7 @@ export function ImageUploader({
                             className={`
                                 relative group cursor-move
                                 ${draggedIndex === index ? 'opacity-50 scale-95' : ''}
-                                ${draggedIndex !== null && draggedIndex !== index ? 'hover:scale-105' : ''}
-                                transition-all duration-200
+                                transition-opacity duration-200
                             `}
                             draggable={!disabled}
                             onDragStart={(e) => handleDragStart(e, index)}
